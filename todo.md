@@ -1,4 +1,4 @@
-# MCR Afiliados - TODO
+# MCR Caicedo Digital - TODO
 
 ## Base de datos
 - [x] Tabla leads (id, nombre, email, telefono, estado, etiquetas, fuente, campana, productoInteres, notas, creadoEn, actualizadoEn)

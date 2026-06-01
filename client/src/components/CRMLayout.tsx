@@ -96,7 +96,7 @@ export default function CRMLayout({ children }: CRMLayoutProps) {
             <Bot className="w-8 h-8 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-display font-bold text-foreground">MCR Afiliados</h1>
+            <h1 className="text-2xl font-display font-bold text-foreground">MCR Caicedo Digital</h1>
             <p className="text-muted-foreground mt-2 text-sm">CRM inteligente para afiliados Hotmart</p>
           </div>
           <Button
@@ -129,7 +129,7 @@ export default function CRMLayout({ children }: CRMLayoutProps) {
               <Layers className="w-4 h-4 text-primary-foreground" />
             </div>
             <div>
-              <p className="text-sm font-display font-bold text-white leading-none">MCR Afiliados</p>
+              <p className="text-sm font-display font-bold text-white leading-none">MCR Caicedo Digital</p>
               <p className="text-[10px] mt-0.5" style={{ color: "oklch(0.55 0.03 255)" }}>Hotmart CRM</p>
             </div>
           </div>
