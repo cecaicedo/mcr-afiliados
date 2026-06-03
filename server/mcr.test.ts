@@ -50,6 +50,17 @@ vi.mock("./db", () => ({
   getRecordatoriosPendientes: vi.fn().mockResolvedValue([]),
   createRecordatorio: vi.fn().mockResolvedValue({ id: 1 }),
   markRecordatorioEjecutado: vi.fn().mockResolvedValue(undefined),
+  getApiCredentials: vi.fn().mockResolvedValue([]),
+  createApiCredential: vi.fn().mockResolvedValue({ id: 1 }),
+  updateApiCredential: vi.fn().mockResolvedValue(undefined),
+  deleteApiCredential: vi.fn().mockResolvedValue(undefined),
+  createMensajeWhatsapp: vi.fn().mockResolvedValue({ insertId: 1 }),
+  getMensajesByLead: vi.fn().mockResolvedValue([]),
+  updateMensajeWhatsapp: vi.fn().mockResolvedValue(undefined),
+  createPublicacion: vi.fn().mockResolvedValue({ insertId: 1 }),
+  getPublicaciones: vi.fn().mockResolvedValue([]),
+  updatePublicacion: vi.fn().mockResolvedValue(undefined),
+  deletePublicacion: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock notifyOwner
@@ -337,5 +348,62 @@ describe("auth.logout", () => {
     const result = await caller.auth.logout();
     expect(result.success).toBe(true);
     expect(clearedCookies.length).toBe(1);
+  });
+});
+
+
+describe("APIs Multicanal - Credenciales", () => {
+  it("crea una credencial de WhatsApp", async () => {
+    const caller = appRouter.createCaller(makeCtx());
+    const result = await caller.apis.credenciales.create({
+      plataforma: "whatsapp",
+      tokenAcceso: "test_token_whatsapp_123",
+      numeroTelefono: "573001234567",
+    });
+    expect(result).toBeDefined();
+  });
+
+  it("lista credenciales de APIs", async () => {
+    const caller = appRouter.createCaller(makeCtx());
+    const result = await caller.apis.credenciales.list();
+    expect(Array.isArray(result)).toBe(true);
+  });
+});
+
+describe("APIs Multicanal - WhatsApp", () => {
+  it("falla al enviar mensaje si el lead no existe", async () => {
+    const caller = appRouter.createCaller(makeCtx());
+    try {
+      await caller.apis.whatsapp.enviarMensaje({
+        leadId: 999,
+        contenido: "Hola, este es un mensaje de prueba",
+      });
+      expect(true).toBe(false);
+    } catch (e: any) {
+      expect(e.message).toContain("Lead no encontrado");
+    }
+  });
+});
+
+describe("APIs Multicanal - Redes Sociales", () => {
+  it("lista publicaciones por plataforma", async () => {
+    const caller = appRouter.createCaller(makeCtx());
+    const result = await caller.apis.redes.listar({ plataforma: "instagram" });
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("falla al crear publicación sin credenciales configuradas", async () => {
+    const caller = appRouter.createCaller(makeCtx());
+    try {
+      await caller.apis.redes.crearPublicacion({
+        plataforma: "instagram",
+        contenido: "Mi primer post en Instagram",
+        hashtags: ["#marketing", "#hotmart"],
+        estado: "borrador",
+      });
+      expect(true).toBe(false);
+    } catch (e: any) {
+      expect(e.message).toContain("no está configurado");
+    }
   });
 });

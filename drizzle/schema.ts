@@ -188,3 +188,54 @@ export const recordatorios = mysqlTable("recordatorios", {
 
 export type Recordatorio = typeof recordatorios.$inferSelect;
 export type InsertRecordatorio = typeof recordatorios.$inferInsert;
+
+// ─── Configuración de APIs Multicanal ─────────────────────────────────────────
+export const apiCredentials = mysqlTable("api_credentials", {
+  id: int("id").autoincrement().primaryKey(),
+  plataforma: mysqlEnum("plataforma", ["whatsapp", "instagram", "tiktok"]).notNull(),
+  tokenAcceso: text("tokenAcceso").notNull(),
+  numeroTelefono: varchar("numeroTelefono", { length: 20 }),
+  idCuenta: varchar("idCuenta", { length: 200 }),
+  nombreCuenta: varchar("nombreCuenta", { length: 200 }),
+  activo: boolean("activo").notNull().default(true),
+  ultimaVerificacion: timestamp("ultimaVerificacion"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ApiCredential = typeof apiCredentials.$inferSelect;
+export type InsertApiCredential = typeof apiCredentials.$inferInsert;
+
+// ─── Historial de Mensajes WhatsApp ───────────────────────────────────────────
+export const mensajesWhatsapp = mysqlTable("mensajes_whatsapp", {
+  id: int("id").autoincrement().primaryKey(),
+  leadId: int("leadId").notNull(),
+  contenido: text("contenido").notNull(),
+  estado: mysqlEnum("estado", ["pendiente", "enviado", "entregado", "leido", "error"]).notNull().default("pendiente"),
+  idMensajeWhatsapp: varchar("idMensajeWhatsapp", { length: 200 }),
+  error: text("error"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  enviadoEn: timestamp("enviadoEn"),
+});
+
+export type MensajeWhatsapp = typeof mensajesWhatsapp.$inferSelect;
+export type InsertMensajeWhatsapp = typeof mensajesWhatsapp.$inferInsert;
+
+// ─── Publicaciones en Redes Sociales ───────────────────────────────────────────
+export const publicacionesRedes = mysqlTable("publicaciones_redes", {
+  id: int("id").autoincrement().primaryKey(),
+  plataforma: mysqlEnum("plataforma", ["instagram", "tiktok"]).notNull(),
+  contenido: text("contenido").notNull(),
+  imagenes: json("imagenes").$type<string[]>().default([]),
+  videos: json("videos").$type<string[]>().default([]),
+  hashtags: json("hashtags").$type<string[]>().default([]),
+  estado: mysqlEnum("estado", ["borrador", "programada", "publicada", "error"]).notNull().default("borrador"),
+  idPublicacion: varchar("idPublicacion", { length: 200 }),
+  fechaPublicacion: timestamp("fechaPublicacion"),
+  error: text("error"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PublicacionRed = typeof publicacionesRedes.$inferSelect;
+export type InsertPublicacionRed = typeof publicacionesRedes.$inferInsert;

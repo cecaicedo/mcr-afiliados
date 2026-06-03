@@ -23,6 +23,12 @@ import {
   reglasSeguimiento,
   users,
   webhooksHotmart,
+  apiCredentials,
+  InsertApiCredential,
+  mensajesWhatsapp,
+  InsertMensajeWhatsapp,
+  publicacionesRedes,
+  InsertPublicacionRed,
 } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -374,4 +380,80 @@ export async function getLeadsInactivos(diasInactividad: number, estados: string
       )
     )
   );
+}
+
+// ─── API Credentials ──────────────────────────────────────────────────────────
+export async function getApiCredentials(plataforma?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  if (plataforma) {
+    return db.select().from(apiCredentials).where(eq(apiCredentials.plataforma, plataforma as any));
+  }
+  return db.select().from(apiCredentials);
+}
+
+export async function createApiCredential(data: InsertApiCredential) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(apiCredentials).values(data);
+  return result;
+}
+
+export async function updateApiCredential(id: number, data: Partial<InsertApiCredential>) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.update(apiCredentials).set(data).where(eq(apiCredentials.id, id));
+}
+
+export async function deleteApiCredential(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.delete(apiCredentials).where(eq(apiCredentials.id, id));
+}
+
+// ─── Mensajes WhatsApp ────────────────────────────────────────────────────────
+export async function createMensajeWhatsapp(data: InsertMensajeWhatsapp) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.insert(mensajesWhatsapp).values(data);
+}
+
+export async function getMensajesByLead(leadId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(mensajesWhatsapp).where(eq(mensajesWhatsapp.leadId, leadId)).orderBy(desc(mensajesWhatsapp.createdAt));
+}
+
+export async function updateMensajeWhatsapp(id: number, data: Partial<InsertMensajeWhatsapp>) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.update(mensajesWhatsapp).set(data).where(eq(mensajesWhatsapp.id, id));
+}
+
+// ─── Publicaciones en Redes ───────────────────────────────────────────────────
+export async function createPublicacion(data: InsertPublicacionRed) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.insert(publicacionesRedes).values(data);
+}
+
+export async function getPublicaciones(plataforma?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  if (plataforma) {
+    return db.select().from(publicacionesRedes).where(eq(publicacionesRedes.plataforma, plataforma as any)).orderBy(desc(publicacionesRedes.createdAt));
+  }
+  return db.select().from(publicacionesRedes).orderBy(desc(publicacionesRedes.createdAt));
+}
+
+export async function updatePublicacion(id: number, data: Partial<InsertPublicacionRed>) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.update(publicacionesRedes).set(data).where(eq(publicacionesRedes.id, id));
+}
+
+export async function deletePublicacion(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.delete(publicacionesRedes).where(eq(publicacionesRedes.id, id));
 }

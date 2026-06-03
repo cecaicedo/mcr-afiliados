@@ -27,6 +27,7 @@ import {
   Webhook,
   RefreshCw,
 } from "lucide-react";
+import { WhatsAppSender } from "@/components/WhatsAppSender";
 
 const ESTADOS = ["nuevo", "contactado", "interesado", "compro", "perdido"] as const;
 const ESTADO_LABELS: Record<string, string> = {
@@ -235,6 +236,13 @@ export default function LeadDetalle() {
               </Button>
             </CardContent>
           </Card>
+
+          {/* Enviar WhatsApp */}
+          <WhatsAppSender
+            leadId={leadId}
+            telefono={lead?.telefono || undefined}
+            onMensajeEnviado={() => utils.interacciones.byLeadId.invalidate({ leadId })}
+          />
         </div>
 
         {/* Historial de interacciones */}

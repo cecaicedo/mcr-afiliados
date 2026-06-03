@@ -14,6 +14,7 @@ import FlujoDetalle from "./pages/FlujoDetalle";
 import Plantillas from "./pages/Plantillas";
 import Analiticas from "./pages/Analiticas";
 import Configuracion from "./pages/Configuracion";
+import PublicadorRedes from "./pages/PublicadorRedes";
 
 function Router() {
   return (
@@ -28,6 +29,7 @@ function Router() {
         <Route path="/plantillas" component={Plantillas} />
         <Route path="/analiticas" component={Analiticas} />
         <Route path="/configuracion" component={Configuracion} />
+        <Route path="/publicador" component={PublicadorRedes} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

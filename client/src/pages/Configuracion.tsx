@@ -12,7 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Webhook, Tag, Trash2, Copy, CheckCircle2, Clock, AlertCircle, RefreshCw } from "lucide-react";
+import { Plus, Webhook, Tag, Trash2, Copy, CheckCircle2, Clock, AlertCircle, RefreshCw, Zap } from "lucide-react";
+import { ApiCredentialsManager } from "@/components/ApiCredentialsManager";
 
 function WebhookInfo() {
   const [copied, setCopied] = useState(false);
@@ -350,6 +351,9 @@ export default function Configuracion() {
           <TabsTrigger value="recordatorios" className="text-xs gap-1.5">
             <RefreshCw className="w-3.5 h-3.5" /> Recordatorios
           </TabsTrigger>
+          <TabsTrigger value="apis" className="text-xs gap-1.5">
+            <Zap className="w-3.5 h-3.5" /> Integraciones
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="webhooks" className="mt-6">
@@ -362,6 +366,10 @@ export default function Configuracion() {
 
         <TabsContent value="recordatorios" className="mt-6">
           <RecordatoriosConfig />
+        </TabsContent>
+
+        <TabsContent value="apis" className="mt-6">
+          <ApiCredentialsManager />
         </TabsContent>
       </Tabs>
     </div>

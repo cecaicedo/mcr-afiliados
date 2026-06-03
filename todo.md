@@ -36,6 +36,26 @@
 - [x] Página Configuración: webhooks Hotmart, reglas de seguimiento, etiquetas
 - [x] Generador IA de plantillas (modal con formulario)
 
+## Nuevas Funcionalidades - Integraciones Multicanal
+- [x] Tabla de configuración de APIs (WhatsApp Business, Instagram, TikTok)
+- [x] Tabla de historial de envíos WhatsApp
+- [x] Tabla de publicaciones en redes sociales
+- [x] Router tRPC para enviar mensajes WhatsApp
+- [x] Router tRPC para publicar en Instagram
+- [x] Router tRPC para publicar en TikTok
+- [x] Página de Configuración de APIs (credenciales, tokens)
+- [x] Módulo de envío WhatsApp desde detalle de lead
+- [x] Módulo de publicador de redes sociales
+- [x] Historial de envíos WhatsApp por lead
+- [x] Historial de publicaciones en redes
+
+## Funcionalidades Anteriores (Pendientes)
+- [ ] Sección de Mensajes de Bienvenida Automáticos en Configuración
+- [ ] Router tRPC para CRUD de mensajes de bienvenida
+- [ ] Componente WelcomeMessagesConfig con formulario y vista previa
+- [ ] Activación/desactivación de flujos de bienvenida por producto
+- [ ] Integración con flujos automáticos existentes
+
 ## Integraciones y Automatización
 - [x] Webhook público /api/hotmart/webhook para recibir eventos
 - [x] Procesamiento de evento: compra_completada

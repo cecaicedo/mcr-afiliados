@@ -11,6 +11,7 @@ import {
   LogOut,
   MessageSquare,
   Package,
+  Share2,
   Users,
   Zap,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/productos", icon: Package, label: "Productos" },
   { href: "/flujos", icon: Zap, label: "Automatizaciones" },
   { href: "/plantillas", icon: MessageSquare, label: "Plantillas" },
+  { href: "/publicador", icon: Share2, label: "Publicador" },
   { href: "/analiticas", icon: BarChart3, label: "Analíticas" },
 ];
 

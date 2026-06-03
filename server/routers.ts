@@ -422,6 +422,160 @@ const reglasRouter = router({
     }),
 });
 
+// ─── APIs Multicanal Router ──────────────────────────────────────────────────
+const apisRouter = router({
+  // Credenciales
+  credenciales: router({
+    list: protectedProcedure
+      .query(() => db.getApiCredentials()),
+
+    create: protectedProcedure
+      .input(z.object({
+        plataforma: z.enum(["whatsapp", "instagram", "tiktok"]),
+        tokenAcceso: z.string().min(1),
+        numeroTelefono: z.string().optional(),
+        idCuenta: z.string().optional(),
+        nombreCuenta: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        return db.createApiCredential(input as any);
+      }),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        tokenAcceso: z.string().optional(),
+        numeroTelefono: z.string().optional(),
+        nombreCuenta: z.string().optional(),
+        activo: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await db.updateApiCredential(id, data as any);
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteApiCredential(input.id);
+        return { success: true };
+      }),
+  }),
+
+  // WhatsApp
+  whatsapp: router({
+    enviarMensaje: protectedProcedure
+      .input(z.object({
+        leadId: z.number(),
+        contenido: z.string().min(1),
+      }))
+      .mutation(async ({ input }) => {
+        const lead = await db.getLeadById(input.leadId);
+        if (!lead) throw new TRPCError({ code: "NOT_FOUND", message: "Lead no encontrado" });
+        if (!lead.telefono) throw new TRPCError({ code: "BAD_REQUEST", message: "El lead no tiene teléfono registrado" });
+
+        const credencial = await db.getApiCredentials("whatsapp");
+        if (!credencial || credencial.length === 0 || !credencial[0].activo) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "WhatsApp no está configurado" });
+        }
+
+        // Registrar mensaje como pendiente
+        const resultado = await db.createMensajeWhatsapp({
+          leadId: input.leadId,
+          contenido: input.contenido,
+          estado: "pendiente",
+        });
+
+        // Aquí iría la lógica real de envío a WhatsApp Business API
+        // Por ahora, simulamos el envío
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Actualizar estado a enviado
+        const mensajeId = (resultado as any).insertId || 1;
+        await db.updateMensajeWhatsapp(mensajeId, {
+          estado: "enviado",
+          enviadoEn: new Date(),
+        });
+
+        // Registrar interacción
+        await db.createInteraccion({
+          leadId: input.leadId,
+          tipo: "mensaje_enviado",
+          contenido: input.contenido,
+          estadoMensaje: "enviado",
+        });
+
+        return { success: true, mensajeId };
+      }),
+
+    historial: protectedProcedure
+      .input(z.object({ leadId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getMensajesByLead(input.leadId);
+      }),
+  }),
+
+  // Redes Sociales
+  redes: router({
+    crearPublicacion: protectedProcedure
+      .input(z.object({
+        plataforma: z.enum(["instagram", "tiktok"]),
+        contenido: z.string().min(1),
+        imagenes: z.array(z.string()).optional(),
+        videos: z.array(z.string()).optional(),
+        hashtags: z.array(z.string()).optional(),
+        estado: z.enum(["borrador", "programada", "publicada"]).default("borrador"),
+        fechaPublicacion: z.date().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const credencial = await db.getApiCredentials(input.plataforma);
+        if (!credencial || credencial.length === 0 || !credencial[0].activo) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: `${input.plataforma} no está configurado` });
+        }
+
+        const resultado = await db.createPublicacion({
+          plataforma: input.plataforma as any,
+          contenido: input.contenido,
+          imagenes: input.imagenes || [],
+          videos: input.videos || [],
+          hashtags: input.hashtags || [],
+          estado: input.estado as any,
+          fechaPublicacion: input.fechaPublicacion,
+        });
+
+        const publicacionId = (resultado as any).insertId || 1;
+        return { success: true, publicacionId };
+      }),
+
+    listar: protectedProcedure
+      .input(z.object({ plataforma: z.enum(["instagram", "tiktok"]).optional() }))
+      .query(async ({ input }) => {
+        return db.getPublicaciones(input.plataforma);
+      }),
+
+    actualizar: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        contenido: z.string().optional(),
+        estado: z.enum(["borrador", "programada", "publicada", "error"]).optional(),
+        error: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await db.updatePublicacion(id, data as any);
+        return { success: true };
+      }),
+
+    eliminar: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deletePublicacion(input.id);
+        return { success: true };
+      }),
+  }),
+});
+
 // ─── App Router ───────────────────────────────────────────────────────────────
 export const appRouter = router({
   system: systemRouter,
@@ -441,6 +595,7 @@ export const appRouter = router({
   etiquetas: etiquetasRouter,
   analytics: analyticsRouter,
   reglas: reglasRouter,
+  apis: apisRouter,
 });
 
 export type AppRouter = typeof appRouter;

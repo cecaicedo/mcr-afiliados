@@ -15,6 +15,13 @@
       "when": 1780332472029,
       "tag": "0001_careful_princess_powerful",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1780338414489,
+      "tag": "0002_tearful_mephisto",
+      "breakpoints": true
     }
   ]
 }
