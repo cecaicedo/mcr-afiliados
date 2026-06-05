@@ -61,6 +61,10 @@ vi.mock("./db", () => ({
   getPublicaciones: vi.fn().mockResolvedValue([]),
   updatePublicacion: vi.fn().mockResolvedValue(undefined),
   deletePublicacion: vi.fn().mockResolvedValue(undefined),
+  getWelcomeMessages: vi.fn().mockResolvedValue([]),
+  createWelcomeMessage: vi.fn().mockResolvedValue({ insertId: 1 }),
+  updateWelcomeMessage: vi.fn().mockResolvedValue(undefined),
+  deleteWelcomeMessage: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock notifyOwner
@@ -405,5 +409,41 @@ describe("APIs Multicanal - Redes Sociales", () => {
     } catch (e: any) {
       expect(e.message).toContain("no está configurado");
     }
+  });
+});
+
+
+describe("Welcome Messages", () => {
+  it("lista mensajes de bienvenida", async () => {
+    const caller = appRouter.createCaller(makeCtx());
+    const result = await caller.welcomeMessages.list();
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  it("crea un mensaje de bienvenida", async () => {
+    const caller = appRouter.createCaller(makeCtx());
+    const result = await caller.welcomeMessages.create({
+      productoId: 1,
+      contenido: "¡Hola! Bienvenido a nuestro producto exclusivo. Aquí encontrarás todo lo que necesitas.",
+      activo: true,
+    });
+    expect(result.success).toBe(true);
+    expect(result.id).toBeDefined();
+  });
+
+  it("actualiza un mensaje de bienvenida", async () => {
+    const caller = appRouter.createCaller(makeCtx());
+    const result = await caller.welcomeMessages.update({
+      id: 1,
+      contenido: "Contenido actualizado del mensaje de bienvenida",
+      activo: true,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("elimina un mensaje de bienvenida", async () => {
+    const caller = appRouter.createCaller(makeCtx());
+    const result = await caller.welcomeMessages.delete({ id: 1 });
+    expect(result.success).toBe(true);
   });
 });

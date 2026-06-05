@@ -457,3 +457,37 @@ export async function deletePublicacion(id: number) {
   if (!db) throw new Error("DB not available");
   return db.delete(publicacionesRedes).where(eq(publicacionesRedes.id, id));
 }
+
+
+// ─── Welcome Messages (usando plantillas con categoría bienvenida) ───────────
+export async function getWelcomeMessages() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(plantillasMensajes).where(eq(plantillasMensajes.categoria, "bienvenida")).orderBy(desc(plantillasMensajes.createdAt));
+}
+
+export async function createWelcomeMessage(data: { productoId: number; contenido: string; activo?: boolean }) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.insert(plantillasMensajes).values({
+    nombre: `Bienvenida Producto ${data.productoId}`,
+    contenido: data.contenido,
+    categoria: "bienvenida",
+    variables: [],
+    createdAt: new Date(),
+  });
+}
+
+export async function updateWelcomeMessage(id: number, data: { contenido?: string; activo?: boolean }) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const updateData: any = {};
+  if (data.contenido) updateData.contenido = data.contenido;
+  return db.update(plantillasMensajes).set(updateData).where(eq(plantillasMensajes.id, id));
+}
+
+export async function deleteWelcomeMessage(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.delete(plantillasMensajes).where(eq(plantillasMensajes.id, id));
+}

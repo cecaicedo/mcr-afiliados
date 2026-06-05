@@ -49,12 +49,12 @@
 - [x] Historial de envíos WhatsApp por lead
 - [x] Historial de publicaciones en redes
 
-## Funcionalidades Anteriores (Pendientes)
-- [ ] Sección de Mensajes de Bienvenida Automáticos en Configuración
-- [ ] Router tRPC para CRUD de mensajes de bienvenida
-- [ ] Componente WelcomeMessagesConfig con formulario y vista previa
-- [ ] Activación/desactivación de flujos de bienvenida por producto
-- [ ] Integración con flujos automáticos existentes
+## Funcionalidades Anteriores (Completadas)
+- [x] Sección de Mensajes de Bienvenida Automáticos en Configuración
+- [x] Router tRPC para CRUD de mensajes de bienvenida
+- [x] Componente WelcomeMessagesConfig con formulario y vista previa
+- [x] Activación/desactivación de flujos de bienvenida por producto
+- [x] Integración con flujos automáticos existentes
 
 ## Integraciones y Automatización
 - [x] Webhook público /api/hotmart/webhook para recibir eventos

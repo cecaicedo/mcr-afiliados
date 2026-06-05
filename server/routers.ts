@@ -576,6 +576,48 @@ const apisRouter = router({
   }),
 });
 
+// ─── Welcome Messages Router ─────────────────────────────────────────────────────
+const welcomeMessagesRouter = router({
+  list: protectedProcedure
+    .input(z.object({ productoId: z.number().optional() }).optional())
+    .query(async ({ input }) => {
+      const messages = await db.getWelcomeMessages();
+      if (input?.productoId) {
+        return messages.filter((m: any) => m.productoId === input.productoId);
+      }
+      return messages;
+    }),
+
+  create: protectedProcedure
+    .input(z.object({
+      productoId: z.number(),
+      contenido: z.string().min(10),
+      activo: z.boolean().default(true),
+    }))
+    .mutation(async ({ input }) => {
+      const result = await db.createWelcomeMessage(input);
+      return { success: true, id: (result as any).insertId };
+    }),
+
+  update: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      contenido: z.string().min(10).optional(),
+      activo: z.boolean().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      await db.updateWelcomeMessage(input.id, input);
+      return { success: true };
+    }),
+
+  delete: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.deleteWelcomeMessage(input.id);
+      return { success: true };
+    }),
+});
+
 // ─── App Router ───────────────────────────────────────────────────────────────
 export const appRouter = router({
   system: systemRouter,
@@ -596,6 +638,7 @@ export const appRouter = router({
   analytics: analyticsRouter,
   reglas: reglasRouter,
   apis: apisRouter,
+  welcomeMessages: welcomeMessagesRouter,
 });
 
 export type AppRouter = typeof appRouter;
