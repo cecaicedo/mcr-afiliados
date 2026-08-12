@@ -106,8 +106,8 @@
 - [x] Adaptar el handler programado /api/scheduled/recordatorios al envío real con consentimiento, variables y resultado
 
 ## Rediseño visual de tarjetas de catálogo (Estilo Referencia)
-- [ ] Añadir campo `imagenUrl` a la tabla de productos en la base de datos
-- [ ] Actualizar schema, router y formulario de productos para soportar imagen destacada y rating opcional
-- [ ] Rediseñar la página Productos.tsx con tarjetas verticales estilo galería (imagen superior, categoría, título, badge de puntuación, descripción corta, y precio destacado inferior)
-- [ ] Soportar subida manual por parte del usuario o importación masiva automática de los 30+ ebooks distribuidos por nicho
-- [ ] Verificar tests y guardar checkpoint final con la nueva UI de catálogo
+- [x] Añadir campo `imagenUrl` a la tabla de productos en la base de datos
+- [x] Actualizar schema, router y formulario de productos para soportar imagen destacada y rating opcional
+- [x] Rediseñar la página Productos.tsx con tarjetas verticales estilo galería (imagen superior, categoría, título, badge de puntuación, descripción corta, y precio destacado inferior)
+- [x] Soportar subida manual por parte del usuario o importación masiva automática de los 30+ ebooks distribuidos por nicho
+- [x] Verificar tests y guardar checkpoint final con la nueva UI de catálogo
