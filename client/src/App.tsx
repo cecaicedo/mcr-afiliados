@@ -18,6 +18,7 @@ import Campanas from "@/pages/Campanas";
 import Embudos from "@/pages/Embudos";
 import Configuracion from "@/pages/Configuracion";
 import PublicadorRedes from "./pages/PublicadorRedes";
+import ConexionesSociales from "@/pages/ConexionesSociales";
 
 function Router() {
   return (
@@ -36,6 +37,7 @@ function Router() {
         <Route path="/embudos" component={Embudos} />
         <Route path="/configuracion" component={Configuracion} />
         <Route path="/publicador" component={PublicadorRedes} />
+        <Route path="/conexiones-sociales" component={ConexionesSociales} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>

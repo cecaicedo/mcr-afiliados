@@ -46,6 +46,7 @@ const navGroups = [
       { href: "/flujos", icon: Zap, label: "Automatizaciones" },
       { href: "/plantillas", icon: MessageSquare, label: "Plantillas & IA" },
       { href: "/plantillas-sociales", icon: Bot, label: "Respuestas Sociales" },
+      { href: "/conexiones-sociales", icon: Share2, label: "Conexiones Sociales" },
       { href: "/publicador", icon: Share2, label: "Publicador" },
     ],
   },
