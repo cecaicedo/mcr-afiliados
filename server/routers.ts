@@ -7,6 +7,7 @@ import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { invokeLLM } from "./_core/llm";
 import { notifyOwner } from "./_core/notification";
 import * as db from "./db";
+import { storagePut } from "./storage";
 
 const META_GRAPH_VERSION = "v23.0";
 
@@ -292,6 +293,23 @@ const productosRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(({ input }) => db.deleteProducto(input.id)),
+
+  uploadImage: protectedProcedure
+    .input(z.object({
+      fileName: z.string(),
+      fileData: z.string(), // base64
+      mimeType: z.string().default("image/jpeg"),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        const buffer = Buffer.from(input.fileData, "base64");
+        const relKey = `productos/${Date.now()}_${input.fileName}`;
+        const { url } = await storagePut(relKey, buffer, input.mimeType);
+        return { url };
+      } catch (err) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Error al subir imagen: ${String(err)}` });
+      }
+    }),
 });
 
 // ─── Plantillas Router ────────────────────────────────────────────────────────

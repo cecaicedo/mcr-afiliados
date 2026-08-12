@@ -27,6 +27,45 @@ function ProductoForm({ open, onClose, initial }: { open: boolean; onClose: () =
     activo: initial?.activo ?? true,
   });
 
+  const [uploading, setUploading] = useState(false);
+
+  const uploadImageMutation = trpc.productos.uploadImage.useMutation({
+    onSuccess: (data) => {
+      setForm((current) => ({ ...current, imagenUrl: data.url }));
+      setUploading(false);
+      toast.success("Imagen cargada con éxito");
+    },
+    onError: (err) => {
+      setUploading(false);
+      toast.error(`Error al subir imagen: ${err.message}`);
+    },
+  });
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("La imagen es demasiado grande. Máximo 5MB.");
+      return;
+    }
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64Data = result.includes(",") ? result.split(",")[1] : result;
+      uploadImageMutation.mutate({
+        fileName: file.name,
+        fileData: base64Data,
+        mimeType: file.type || "image/jpeg",
+      });
+    };
+    reader.onerror = () => {
+      setUploading(false);
+      toast.error("No se pudo leer el archivo");
+    };
+    reader.readAsDataURL(file);
+  };
+
   const create = trpc.productos.create.useMutation({
     onSuccess: () => { toast.success("Ebook agregado al catálogo"); utils.productos.list.invalidate(); onClose(); },
     onError: (error) => toast.error(error.message),
@@ -63,8 +102,20 @@ function ProductoForm({ open, onClose, initial }: { open: boolean; onClose: () =
               <Input type="url" value={form.enlaceAfiliado} onChange={(event) => setForm((current) => ({ ...current, enlaceAfiliado: event.target.value }))} required placeholder="https://go.hotmart.com/..." />
             </div>
             <div className="space-y-1.5">
-              <Label>URL de imagen (Portada)</Label>
-              <Input type="url" value={form.imagenUrl} onChange={(event) => setForm((current) => ({ ...current, imagenUrl: event.target.value }))} placeholder="https://images.unsplash.com/..." />
+              <Label>Portada del ebook (URL o archivo)</Label>
+              <div className="flex gap-2">
+                <Input type="url" value={form.imagenUrl} onChange={(event) => setForm((current) => ({ ...current, imagenUrl: event.target.value }))} placeholder="https://... o sube abajo" />
+                <label className="cursor-pointer inline-flex items-center justify-center rounded-md bg-secondary px-3 text-xs font-medium text-secondary-foreground hover:bg-secondary/80 shrink-0">
+                  {uploading ? "Subiendo..." : "Subir archivo"}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} disabled={uploading} />
+                </label>
+              </div>
+              {form.imagenUrl && (
+                <div className="mt-1 flex items-center gap-2">
+                  <img src={form.imagenUrl} alt="Vista previa" className="h-10 w-10 rounded object-cover border" />
+                  <span className="text-[11px] text-muted-foreground truncate max-w-[240px]">{form.imagenUrl}</span>
+                </div>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
