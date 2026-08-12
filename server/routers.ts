@@ -8,6 +8,103 @@ import { invokeLLM } from "./_core/llm";
 import { notifyOwner } from "./_core/notification";
 import * as db from "./db";
 
+const META_GRAPH_VERSION = "v23.0";
+
+async function requestExternalJson(url: string, init: RequestInit) {
+  const response = await fetch(url, init);
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = (body as any)?.error?.message || (body as any)?.message || `La API externa respondió ${response.status}`;
+    throw new Error(message);
+  }
+  return body as any;
+}
+
+function normalizePhoneNumber(value: string) {
+  return value.replace(/[^\d]/g, "");
+}
+
+function withHashtags(contenido: string, hashtags?: string[]) {
+  const tags = (hashtags ?? []).filter(Boolean).join(" ");
+  return tags ? `${contenido.trim()}\n\n${tags}` : contenido.trim();
+}
+
+async function sendWhatsAppCloudMessage(params: { token: string; phoneNumberId: string; to: string; body: string }) {
+  return requestExternalJson(`https://graph.facebook.com/${META_GRAPH_VERSION}/${params.phoneNumberId}/messages`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${params.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: normalizePhoneNumber(params.to),
+      type: "text",
+      text: { preview_url: true, body: params.body },
+    }),
+  });
+}
+
+async function publishInstagramContent(params: { token: string; accountId: string; contenido: string; imagenes: string[]; videos: string[]; hashtags: string[] }) {
+  const caption = withHashtags(params.contenido, params.hashtags);
+  const media = params.videos[0]
+    ? { media_type: "REELS", video_url: params.videos[0], caption }
+    : params.imagenes[0]
+      ? { image_url: params.imagenes[0], caption }
+      : null;
+  if (!media) throw new Error("Instagram requiere una URL pública de imagen o vídeo para publicar");
+
+  const container = await requestExternalJson(`https://graph.facebook.com/${META_GRAPH_VERSION}/${params.accountId}/media`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${params.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(media),
+  });
+  if (!container.id) throw new Error("Instagram no devolvió un identificador de contenedor");
+
+  const published = await requestExternalJson(`https://graph.facebook.com/${META_GRAPH_VERSION}/${params.accountId}/media_publish`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${params.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ creation_id: container.id }),
+  });
+  return { id: published.id ?? container.id };
+}
+
+async function publishTikTokVideo(params: { token: string; contenido: string; videos: string[]; hashtags: string[] }) {
+  const videoUrl = params.videos[0];
+  if (!videoUrl) throw new Error("TikTok requiere una URL pública de vídeo verificada");
+
+  const response = await requestExternalJson("https://open.tiktokapis.com/v2/post/publish/video/init/", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${params.token}`,
+      "Content-Type": "application/json; charset=UTF-8",
+    },
+    body: JSON.stringify({
+      post_info: {
+        title: withHashtags(params.contenido, params.hashtags),
+        privacy_level: "SELF_ONLY",
+        disable_duet: false,
+        disable_comment: false,
+        disable_stitch: false,
+      },
+      source_info: {
+        source: "PULL_FROM_URL",
+        video_url: videoUrl,
+      },
+    }),
+  });
+  const publishId = response.publish_id ?? response.data?.publish_id;
+  if (!publishId) throw new Error("TikTok no devolvió el identificador de publicación");
+  return { id: publishId };
+}
+
 // ─── Leads Router ─────────────────────────────────────────────────────────────
 const leadsRouter = router({
   list: protectedProcedure
@@ -45,6 +142,41 @@ const leadsRouter = router({
         email: input.email || undefined,
         etiquetasIds: input.etiquetasIds ?? [],
       });
+
+      const leadId = Number((result as any).insertId ?? 0);
+      if (leadId && input.productoInteresId && input.telefono) {
+        const welcome = await db.getActiveWelcomeMessage(input.productoInteresId);
+        const credentials = await db.getApiCredentials("whatsapp");
+        const credential = credentials[0];
+        if (welcome && credential?.activo && credential.tokenAcceso && credential.idCuenta) {
+          const product = await db.getProductoById(input.productoInteresId);
+          const body = welcome.contenido
+            .replaceAll("{{nombre}}", input.nombre)
+            .replaceAll("{{producto}}", product?.nombre ?? "tu producto")
+            .replaceAll("{{enlace}}", product?.enlaceAfiliado ?? "");
+          const pending = await db.createMensajeWhatsapp({ leadId, contenido: body, estado: "pendiente" });
+          const messageId = Number((pending as any).insertId ?? 0);
+          try {
+            const response = await sendWhatsAppCloudMessage({
+              token: credential.tokenAcceso,
+              phoneNumberId: credential.idCuenta,
+              to: input.telefono,
+              body,
+            });
+            await db.updateMensajeWhatsapp(messageId, {
+              estado: "enviado",
+              idMensajeWhatsapp: response.messages?.[0]?.id,
+              enviadoEn: new Date(),
+            });
+            await db.createInteraccion({ leadId, tipo: "mensaje_enviado", contenido: body, estadoMensaje: "enviado" });
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Error desconocido de WhatsApp";
+            await db.updateMensajeWhatsapp(messageId, { estado: "error", error: errorMessage });
+            await db.createInteraccion({ leadId, tipo: "mensaje_enviado", contenido: body, estadoMensaje: "fallido", metadatos: { error: errorMessage } });
+          }
+        }
+      }
+
       // Notificar al propietario
       await notifyOwner({
         title: "🆕 Nuevo lead captado",
@@ -475,45 +607,59 @@ const apisRouter = router({
         if (!lead) throw new TRPCError({ code: "NOT_FOUND", message: "Lead no encontrado" });
         if (!lead.telefono) throw new TRPCError({ code: "BAD_REQUEST", message: "El lead no tiene teléfono registrado" });
 
-        const credencial = await db.getApiCredentials("whatsapp");
-        if (!credencial || credencial.length === 0 || !credencial[0].activo) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "WhatsApp no está configurado" });
+        const credentials = await db.getApiCredentials("whatsapp");
+        const credential = credentials[0];
+        if (!credential?.activo || !credential.tokenAcceso || !credential.idCuenta) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "WhatsApp requiere token activo e ID del número de teléfono" });
         }
 
-        // Registrar mensaje como pendiente
-        const resultado = await db.createMensajeWhatsapp({
+        const pending = await db.createMensajeWhatsapp({
           leadId: input.leadId,
           contenido: input.contenido,
           estado: "pendiente",
         });
+        const mensajeId = Number((pending as any).insertId ?? 0);
 
-        // Aquí iría la lógica real de envío a WhatsApp Business API
-        // Por ahora, simulamos el envío
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Actualizar estado a enviado
-        const mensajeId = (resultado as any).insertId || 1;
-        await db.updateMensajeWhatsapp(mensajeId, {
-          estado: "enviado",
-          enviadoEn: new Date(),
-        });
-
-        // Registrar interacción
-        await db.createInteraccion({
-          leadId: input.leadId,
-          tipo: "mensaje_enviado",
-          contenido: input.contenido,
-          estadoMensaje: "enviado",
-        });
-
-        return { success: true, mensajeId };
+        try {
+          const response = await sendWhatsAppCloudMessage({
+            token: credential.tokenAcceso,
+            phoneNumberId: credential.idCuenta,
+            to: lead.telefono,
+            body: input.contenido,
+          });
+          await db.updateMensajeWhatsapp(mensajeId, {
+            estado: "enviado",
+            idMensajeWhatsapp: response.messages?.[0]?.id,
+            enviadoEn: new Date(),
+          });
+          await db.createInteraccion({
+            leadId: input.leadId,
+            tipo: "mensaje_enviado",
+            contenido: input.contenido,
+            estadoMensaje: "enviado",
+          });
+          return { success: true, mensajeId, providerId: response.messages?.[0]?.id };
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Error desconocido de WhatsApp";
+          await db.updateMensajeWhatsapp(mensajeId, { estado: "error", error: errorMessage });
+          await db.createInteraccion({
+            leadId: input.leadId,
+            tipo: "mensaje_enviado",
+            contenido: input.contenido,
+            estadoMensaje: "fallido",
+            metadatos: { error: errorMessage },
+          });
+          throw new TRPCError({ code: "BAD_REQUEST", message: errorMessage });
+        }
       }),
 
     historial: protectedProcedure
       .input(z.object({ leadId: z.number() }))
-      .query(async ({ input }) => {
-        return db.getMensajesByLead(input.leadId);
-      }),
+      .query(({ input }) => db.getMensajesByLead(input.leadId)),
+
+    listarMensajes: protectedProcedure
+      .input(z.object({ leadId: z.number() }))
+      .query(({ input }) => db.getMensajesByLead(input.leadId)),
   }),
 
   // Redes Sociales
@@ -529,29 +675,69 @@ const apisRouter = router({
         fechaPublicacion: z.date().optional(),
       }))
       .mutation(async ({ input }) => {
-        const credencial = await db.getApiCredentials(input.plataforma);
-        if (!credencial || credencial.length === 0 || !credencial[0].activo) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: `${input.plataforma} no está configurado` });
+        const imagenes = input.imagenes ?? [];
+        const videos = input.videos ?? [];
+        const hashtags = input.hashtags ?? [];
+        const wantsPublish = input.estado === "publicada";
+        const credentials = await db.getApiCredentials(input.plataforma);
+        const credential = credentials[0];
+
+        if (wantsPublish && (!credential?.activo || !credential.tokenAcceso || !credential.idCuenta)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: `${input.plataforma} requiere credenciales activas y un ID de cuenta` });
         }
 
         const resultado = await db.createPublicacion({
-          plataforma: input.plataforma as any,
+          plataforma: input.plataforma,
           contenido: input.contenido,
-          imagenes: input.imagenes || [],
-          videos: input.videos || [],
-          hashtags: input.hashtags || [],
-          estado: input.estado as any,
+          imagenes,
+          videos,
+          hashtags,
+          estado: wantsPublish ? "borrador" : input.estado,
           fechaPublicacion: input.fechaPublicacion,
         });
+        const publicacionId = Number((resultado as any).insertId ?? 0);
 
-        const publicacionId = (resultado as any).insertId || 1;
-        return { success: true, publicacionId };
+        if (!wantsPublish) return { success: true, publicacionId, estado: input.estado };
+
+        try {
+          const published = input.plataforma === "instagram"
+            ? await publishInstagramContent({ token: credential!.tokenAcceso, accountId: credential!.idCuenta!, contenido: input.contenido, imagenes, videos, hashtags })
+            : await publishTikTokVideo({ token: credential!.tokenAcceso, contenido: input.contenido, videos, hashtags });
+          await db.updatePublicacion(publicacionId, { estado: "publicada", idPublicacion: published.id, fechaPublicacion: new Date(), error: null });
+          return { success: true, publicacionId, providerId: published.id, estado: "publicada" as const };
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Error desconocido de publicación";
+          await db.updatePublicacion(publicacionId, { estado: "error", error: errorMessage });
+          throw new TRPCError({ code: "BAD_REQUEST", message: errorMessage });
+        }
       }),
 
     listar: protectedProcedure
       .input(z.object({ plataforma: z.enum(["instagram", "tiktok"]).optional() }))
-      .query(async ({ input }) => {
-        return db.getPublicaciones(input.plataforma);
+      .query(({ input }) => db.getPublicaciones(input.plataforma)),
+
+    publicar: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const publication = await db.getPublicacionById(input.id);
+        if (!publication) throw new TRPCError({ code: "NOT_FOUND", message: "Publicación no encontrada" });
+        const credentials = await db.getApiCredentials(publication.plataforma);
+        const credential = credentials[0];
+        if (!credential?.activo || !credential.tokenAcceso || !credential.idCuenta) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: `${publication.plataforma} requiere credenciales activas y un ID de cuenta` });
+        }
+
+        try {
+          const published = publication.plataforma === "instagram"
+            ? await publishInstagramContent({ token: credential.tokenAcceso, accountId: credential.idCuenta, contenido: publication.contenido, imagenes: publication.imagenes ?? [], videos: publication.videos ?? [], hashtags: publication.hashtags ?? [] })
+            : await publishTikTokVideo({ token: credential.tokenAcceso, contenido: publication.contenido, videos: publication.videos ?? [], hashtags: publication.hashtags ?? [] });
+          await db.updatePublicacion(input.id, { estado: "publicada", idPublicacion: published.id, fechaPublicacion: new Date(), error: null });
+          return { success: true, providerId: published.id };
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Error desconocido de publicación";
+          await db.updatePublicacion(input.id, { estado: "error", error: errorMessage });
+          throw new TRPCError({ code: "BAD_REQUEST", message: errorMessage });
+        }
       }),
 
     actualizar: protectedProcedure
@@ -580,13 +766,7 @@ const apisRouter = router({
 const welcomeMessagesRouter = router({
   list: protectedProcedure
     .input(z.object({ productoId: z.number().optional() }).optional())
-    .query(async ({ input }) => {
-      const messages = await db.getWelcomeMessages();
-      if (input?.productoId) {
-        return messages.filter((m: any) => m.productoId === input.productoId);
-      }
-      return messages;
-    }),
+    .query(({ input }) => db.getWelcomeMessages(input?.productoId)),
 
   create: protectedProcedure
     .input(z.object({
@@ -596,7 +776,7 @@ const welcomeMessagesRouter = router({
     }))
     .mutation(async ({ input }) => {
       const result = await db.createWelcomeMessage(input);
-      return { success: true, id: (result as any).insertId };
+      return { success: true, id: Number((result as any).insertId ?? 0) };
     }),
 
   update: protectedProcedure

@@ -18,10 +18,12 @@ export default function PublicadorRedes() {
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [nuevoHashtag, setNuevoHashtag] = useState("");
   const [estado, setEstado] = useState<"borrador" | "programada" | "publicada">("borrador");
+  const [mediaUrl, setMediaUrl] = useState("");
 
   const { data: publicaciones = [], refetch } = trpc.apis.redes.listar.useQuery({ plataforma });
   const createMutation = trpc.apis.redes.crearPublicacion.useMutation();
   const updateMutation = trpc.apis.redes.actualizar.useMutation();
+  const publishMutation = trpc.apis.redes.publicar.useMutation();
   const deleteMutation = trpc.apis.redes.eliminar.useMutation();
 
   const handleAgregarHashtag = () => {
@@ -45,15 +47,18 @@ export default function PublicadorRedes() {
       await createMutation.mutateAsync({
         plataforma,
         contenido,
-        hashtags,
-        estado,
-      });
+          hashtags,
+          estado,
+          imagenes: plataforma === "instagram" && mediaUrl.trim() ? [mediaUrl.trim()] : undefined,
+          videos: plataforma === "tiktok" && mediaUrl.trim() ? [mediaUrl.trim()] : undefined,
+        });
 
       toast.success("Publicación creada correctamente");
       setOpen(false);
       setContenido("");
       setHashtags([]);
       setEstado("borrador");
+      setMediaUrl("");
       refetch();
     } catch (error: any) {
       toast.error(error.message || "Error al crear la publicación");
@@ -72,10 +77,7 @@ export default function PublicadorRedes() {
 
   const handlePublicar = async (id: number) => {
     try {
-      await updateMutation.mutateAsync({
-        id,
-        estado: "publicada",
-      });
+      await publishMutation.mutateAsync({ id });
       toast.success("Publicación enviada a " + plataforma);
       refetch();
     } catch (error: any) {
@@ -172,6 +174,19 @@ export default function PublicadorRedes() {
               </div>
 
               <div>
+                <Label className="flex items-center gap-2">
+                  {plataforma === "instagram" ? <ImageIcon className="h-4 w-4" /> : <Video className="h-4 w-4" />}
+                  URL pública de {plataforma === "instagram" ? "imagen o vídeo" : "vídeo"}
+                </Label>
+                <Input
+                  value={mediaUrl}
+                  onChange={(event) => setMediaUrl(event.target.value)}
+                  placeholder={plataforma === "instagram" ? "https://tu-dominio.com/imagen.jpg" : "https://tu-dominio-verificado.com/video.mp4"}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">La URL debe ser pública. TikTok requiere un dominio verificado para extraer el vídeo.</p>
+              </div>
+
+              <div>
                 <Label>Estado</Label>
                 <Select value={estado} onValueChange={(v) => setEstado(v as any)}>
                   <SelectTrigger>
@@ -254,7 +269,7 @@ export default function PublicadorRedes() {
                 {pub.estado === "borrador" && (
                   <Button
                     onClick={() => handlePublicar(pub.id)}
-                    disabled={updateMutation.isPending}
+                    disabled={publishMutation.isPending}
                     className="w-full"
                     size="sm"
                   >

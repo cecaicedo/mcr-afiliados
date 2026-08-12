@@ -12,8 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Webhook, Tag, Trash2, Copy, CheckCircle2, Clock, AlertCircle, RefreshCw, Zap } from "lucide-react";
+import { Plus, Webhook, Tag, Trash2, Copy, CheckCircle2, Clock, AlertCircle, RefreshCw, Zap, MessageCircle } from "lucide-react";
 import { ApiCredentialsManager } from "@/components/ApiCredentialsManager";
+import { WelcomeMessagesConfig } from "@/components/WelcomeMessagesConfig";
 
 function WebhookInfo() {
   const [copied, setCopied] = useState(false);
@@ -354,6 +355,9 @@ export default function Configuracion() {
           <TabsTrigger value="apis" className="text-xs gap-1.5">
             <Zap className="w-3.5 h-3.5" /> Integraciones
           </TabsTrigger>
+          <TabsTrigger value="bienvenida" className="text-xs gap-1.5">
+            <MessageCircle className="w-3.5 h-3.5" /> Bienvenida WhatsApp
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="webhooks" className="mt-6">
@@ -370,6 +374,10 @@ export default function Configuracion() {
 
         <TabsContent value="apis" className="mt-6">
           <ApiCredentialsManager />
+        </TabsContent>
+
+        <TabsContent value="bienvenida" className="mt-6">
+          <WelcomeMessagesConfig />
         </TabsContent>
       </Tabs>
     </div>

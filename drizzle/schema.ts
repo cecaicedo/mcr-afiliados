@@ -239,3 +239,17 @@ export const publicacionesRedes = mysqlTable("publicaciones_redes", {
 
 export type PublicacionRed = typeof publicacionesRedes.$inferSelect;
 export type InsertPublicacionRed = typeof publicacionesRedes.$inferInsert;
+
+
+// ─── Mensajes de Bienvenida Automáticos ───────────────────────────────────────
+export const mensajesBienvenida = mysqlTable("mensajes_bienvenida", {
+  id: int("id").autoincrement().primaryKey(),
+  productoId: int("productoId").notNull(),
+  contenido: text("contenido").notNull(),
+  activo: boolean("activo").notNull().default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MensajeBienvenida = typeof mensajesBienvenida.$inferSelect;
+export type InsertMensajeBienvenida = typeof mensajesBienvenida.$inferInsert;

@@ -118,20 +118,32 @@ export function ApiCredentialsManager() {
                   onChange={(e) => setToken(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  El token se encriptará y almacenará de forma segura
+                  Se guarda asociado a tu configuración del CRM; usa un token de larga duración de Meta.
                 </p>
               </div>
 
               {plataforma === "whatsapp" && (
-                <div>
-                  <Label htmlFor="numeroTelefono">Número de Teléfono (con código de país)</Label>
-                  <Input
-                    id="numeroTelefono"
-                    placeholder="Ej: 573001234567"
-                    value={numeroTelefono}
-                    onChange={(e) => setNumeroTelefono(e.target.value)}
-                  />
-                </div>
+                <>
+                  <div>
+                    <Label htmlFor="numeroTelefono">Número de Teléfono de negocio (con código de país)</Label>
+                    <Input
+                      id="numeroTelefono"
+                      placeholder="Ej: 573001234567"
+                      value={numeroTelefono}
+                      onChange={(e) => setNumeroTelefono(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="idCuenta">Phone Number ID de Meta *</Label>
+                    <Input
+                      id="idCuenta"
+                      placeholder="ID del número en WhatsApp Manager"
+                      value={idCuenta}
+                      onChange={(e) => setIdCuenta(e.target.value)}
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">Es el identificador técnico del número, no el número telefónico.</p>
+                  </div>
+                </>
               )}
 
               {(plataforma === "instagram" || plataforma === "tiktok") && (

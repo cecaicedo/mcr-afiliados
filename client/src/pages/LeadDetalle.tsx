@@ -28,6 +28,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { WhatsAppSender } from "@/components/WhatsAppSender";
+import { WhatsAppHistory } from "@/components/WhatsAppHistory";
 
 const ESTADOS = ["nuevo", "contactado", "interesado", "compro", "perdido"] as const;
 const ESTADO_LABELS: Record<string, string> = {
@@ -241,8 +242,12 @@ export default function LeadDetalle() {
           <WhatsAppSender
             leadId={leadId}
             telefono={lead?.telefono || undefined}
-            onMensajeEnviado={() => utils.interacciones.byLeadId.invalidate({ leadId })}
+            onMensajeEnviado={() => {
+              utils.interacciones.byLeadId.invalidate({ leadId });
+              utils.apis.whatsapp.listarMensajes.invalidate({ leadId });
+            }}
           />
+          <WhatsAppHistory leadId={leadId} />
         </div>
 
         {/* Historial de interacciones */}

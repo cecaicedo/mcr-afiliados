@@ -1,11 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { appRouter } from "./routers";
+import * as db from "./db";
 import type { TrpcContext } from "./_core/context";
 
 // ─── Mock DB helpers ──────────────────────────────────────────────────────────
 vi.mock("./db", () => ({
   getLeads: vi.fn().mockResolvedValue([]),
   getLeadById: vi.fn().mockResolvedValue(null),
+  getProductoById: vi.fn().mockResolvedValue({ id: 1, nombre: "Producto Test", enlaceAfiliado: "https://example.com/producto" }),
   createLead: vi.fn().mockResolvedValue({ id: 1, nombre: "Test Lead", estado: "nuevo" }),
   updateLead: vi.fn().mockResolvedValue(undefined),
   deleteLead: vi.fn().mockResolvedValue(undefined),
@@ -59,9 +61,11 @@ vi.mock("./db", () => ({
   updateMensajeWhatsapp: vi.fn().mockResolvedValue(undefined),
   createPublicacion: vi.fn().mockResolvedValue({ insertId: 1 }),
   getPublicaciones: vi.fn().mockResolvedValue([]),
+  getPublicacionById: vi.fn().mockResolvedValue(undefined),
   updatePublicacion: vi.fn().mockResolvedValue(undefined),
   deletePublicacion: vi.fn().mockResolvedValue(undefined),
   getWelcomeMessages: vi.fn().mockResolvedValue([]),
+  getActiveWelcomeMessage: vi.fn().mockResolvedValue(undefined),
   createWelcomeMessage: vi.fn().mockResolvedValue({ insertId: 1 }),
   updateWelcomeMessage: vi.fn().mockResolvedValue(undefined),
   deleteWelcomeMessage: vi.fn().mockResolvedValue(undefined),
@@ -377,15 +381,34 @@ describe("APIs Multicanal - Credenciales", () => {
 describe("APIs Multicanal - WhatsApp", () => {
   it("falla al enviar mensaje si el lead no existe", async () => {
     const caller = appRouter.createCaller(makeCtx());
-    try {
-      await caller.apis.whatsapp.enviarMensaje({
-        leadId: 999,
-        contenido: "Hola, este es un mensaje de prueba",
-      });
-      expect(true).toBe(false);
-    } catch (e: any) {
-      expect(e.message).toContain("Lead no encontrado");
-    }
+    await expect(caller.apis.whatsapp.enviarMensaje({ leadId: 999, contenido: "Mensaje" }))
+      .rejects.toThrow("Lead no encontrado");
+  });
+
+  it("envía un mensaje real mediante WhatsApp Cloud API y guarda su estado", async () => {
+    vi.mocked(db.getLeadById).mockResolvedValueOnce({ id: 1, nombre: "Laura", telefono: "57 300 123 4567" } as any);
+    vi.mocked(db.getApiCredentials).mockResolvedValueOnce([{ activo: true, tokenAcceso: "meta-token", idCuenta: "phone-number-id" }] as any);
+    vi.mocked(db.createMensajeWhatsapp).mockResolvedValueOnce({ insertId: 42 } as any);
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ messages: [{ id: "wamid.test-1" }] }) });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const caller = appRouter.createCaller(makeCtx());
+    const result = await caller.apis.whatsapp.enviarMensaje({ leadId: 1, contenido: "Hola Laura" });
+
+    expect(result).toMatchObject({ success: true, mensajeId: 42, providerId: "wamid.test-1" });
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/phone-number-id/messages"),
+      expect.objectContaining({ method: "POST" }),
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it("expone el historial de mensajes por lead", async () => {
+    vi.mocked(db.getMensajesByLead).mockResolvedValueOnce([{ id: 1, leadId: 1, estado: "enviado" }] as any);
+    const caller = appRouter.createCaller(makeCtx());
+    const result = await caller.apis.whatsapp.listarMensajes({ leadId: 1 });
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ leadId: 1 });
   });
 });
 
@@ -396,19 +419,61 @@ describe("APIs Multicanal - Redes Sociales", () => {
     expect(Array.isArray(result)).toBe(true);
   });
 
-  it("falla al crear publicación sin credenciales configuradas", async () => {
+  it("crea un borrador sin llamar a la API externa", async () => {
     const caller = appRouter.createCaller(makeCtx());
-    try {
-      await caller.apis.redes.crearPublicacion({
-        plataforma: "instagram",
-        contenido: "Mi primer post en Instagram",
-        hashtags: ["#marketing", "#hotmart"],
-        estado: "borrador",
-      });
-      expect(true).toBe(false);
-    } catch (e: any) {
-      expect(e.message).toContain("no está configurado");
-    }
+    const result = await caller.apis.redes.crearPublicacion({
+      plataforma: "instagram",
+      contenido: "Mi primer post en Instagram",
+      hashtags: ["#marketing", "#hotmart"],
+      estado: "borrador",
+    });
+    expect(result).toMatchObject({ success: true, estado: "borrador" });
+  });
+
+  it("publica una imagen real en Instagram con el flujo de contenedor y publicación", async () => {
+    vi.mocked(db.getApiCredentials).mockResolvedValueOnce([{ activo: true, tokenAcceso: "instagram-token", idCuenta: "ig-account-id" }] as any);
+    vi.mocked(db.createPublicacion).mockResolvedValueOnce({ insertId: 7 } as any);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: "container-7" }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: "media-7" }) });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const caller = appRouter.createCaller(makeCtx());
+    const result = await caller.apis.redes.crearPublicacion({
+      plataforma: "instagram",
+      contenido: "Post de lanzamiento",
+      imagenes: ["https://cdn.example.com/lanzamiento.jpg"],
+      hashtags: ["#mcr"],
+      estado: "publicada",
+    });
+
+    expect(result).toMatchObject({ success: true, publicacionId: 7, providerId: "media-7", estado: "publicada" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[0]).toContain("/ig-account-id/media");
+    expect(fetchMock.mock.calls[1]?.[0]).toContain("/ig-account-id/media_publish");
+    vi.unstubAllGlobals();
+  });
+
+  it("inicializa una publicación real de vídeo en TikTok", async () => {
+    vi.mocked(db.getApiCredentials).mockResolvedValueOnce([{ activo: true, tokenAcceso: "tiktok-token", idCuenta: "tiktok-open-id" }] as any);
+    vi.mocked(db.createPublicacion).mockResolvedValueOnce({ insertId: 8 } as any);
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { publish_id: "tiktok-publish-8" } }) });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const caller = appRouter.createCaller(makeCtx());
+    const result = await caller.apis.redes.crearPublicacion({
+      plataforma: "tiktok",
+      contenido: "Video de bienvenida",
+      videos: ["https://cdn.example.com/video.mp4"],
+      estado: "publicada",
+    });
+
+    expect(result).toMatchObject({ success: true, publicacionId: 8, providerId: "tiktok-publish-8", estado: "publicada" });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://open.tiktokapis.com/v2/post/publish/video/init/",
+      expect.objectContaining({ method: "POST" }),
+    );
+    vi.unstubAllGlobals();
   });
 });
 
@@ -445,5 +510,31 @@ describe("Welcome Messages", () => {
     const caller = appRouter.createCaller(makeCtx());
     const result = await caller.welcomeMessages.delete({ id: 1 });
     expect(result.success).toBe(true);
+  });
+
+  it("envía automáticamente la bienvenida activa al crear un lead con producto", async () => {
+    vi.mocked(db.createLead).mockResolvedValueOnce({ insertId: 99 } as any);
+    vi.mocked(db.getActiveWelcomeMessage).mockResolvedValueOnce({
+      productoId: 1,
+      contenido: "Hola {{nombre}}, conoce {{producto}} aquí: {{enlace}}",
+      activo: true,
+    } as any);
+    vi.mocked(db.getApiCredentials).mockResolvedValueOnce([{ activo: true, tokenAcceso: "meta-token", idCuenta: "phone-id" }] as any);
+    vi.mocked(db.createMensajeWhatsapp).mockResolvedValueOnce({ insertId: 100 } as any);
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ messages: [{ id: "wamid.welcome-1" }] }) });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const caller = appRouter.createCaller(makeCtx());
+    const result = await caller.leads.create({
+      nombre: "Laura",
+      telefono: "573001234567",
+      productoInteresId: 1,
+      estado: "nuevo",
+    });
+
+    expect(result).toMatchObject({ insertId: 99 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string).text.body).toContain("Hola Laura");
+    vi.unstubAllGlobals();
   });
 });

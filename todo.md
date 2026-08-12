@@ -11,6 +11,7 @@
 - [x] Tabla webhooks_hotmart (id, evento, payload, procesado, creadoEn)
 - [x] Tabla recordatorios (id, leadId, fechaEjecucion, reglaId, ejecutado)
 - [x] Tabla reglas_seguimiento (id, nombre, diasInactividad, plantillaId, activo)
+- [x] Tabla mensajes_bienvenida (id, productoId, contenido, activo, createdAt, updatedAt)
 
 ## Backend - tRPC Routers
 - [x] Router leads: CRUD completo + cambio de estado + filtros
@@ -69,3 +70,15 @@
 - [x] Tests vitest para routers principales (27 tests pasando)
 - [x] Validación de estados de lead (nuevo, contactado, interesado, compró, perdido)
 - [x] Manejo de errores en webhooks
+
+## Cierre de funcionalidades pendientes
+- [x] Verificar y completar la sección visible de mensajes de bienvenida en Configuración
+- [x] Crear componente WelcomeMessagesConfig con formulario, vista previa y estados de UI
+- [x] Persistir producto asociado y estado activo de mensajes de bienvenida
+- [x] Integrar el mensaje de bienvenida con el alta de nuevos leads
+- [x] Agregar procedimiento tRPC para listar historial de WhatsApp por lead
+- [x] Mostrar historial de mensajes WhatsApp en LeadDetalle
+- [x] Implementar publicación real en Instagram con manejo de API y errores
+- [x] Implementar publicación real en TikTok con manejo de API y errores
+- [x] Añadir pruebas exitosas de las integraciones multicanal
+- [x] Ejecutar pruebas, comprobación de servidor y guardar checkpoint final
