@@ -11,7 +11,8 @@ import LeadDetalle from "./pages/LeadDetalle";
 import Productos from "./pages/Productos";
 import Flujos from "./pages/Flujos";
 import FlujoDetalle from "./pages/FlujoDetalle";
-import Plantillas from "./pages/Plantillas";
+import Plantillas from "@/pages/Plantillas";
+import PlantillasSociales from "@/pages/PlantillasSociales";
 import Analiticas from "@/pages/Analiticas";
 import Campanas from "@/pages/Campanas";
 import Configuracion from "@/pages/Configuracion";
@@ -28,6 +29,7 @@ function Router() {
         <Route path="/flujos" component={Flujos} />
         <Route path="/flujos/:id" component={FlujoDetalle} />
         <Route path="/plantillas" component={Plantillas} />
+        <Route path="/plantillas-sociales" component={PlantillasSociales} />
         <Route path="/analiticas" component={Analiticas} />
         <Route path="/campanas" component={Campanas} />
         <Route path="/configuracion" component={Configuracion} />

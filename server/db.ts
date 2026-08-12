@@ -9,6 +9,7 @@ import {
   InsertLead,
   InsertPasoFlujo,
   InsertPlantillaMensaje,
+  InsertPlantillaSocial,
   InsertProducto,
   InsertReglaSeguimiento,
   InsertRecordatorio,
@@ -18,6 +19,7 @@ import {
   leads,
   pasosFlujo,
   plantillasMensajes,
+  plantillasSociales,
   productos,
   recordatorios,
   reglasSeguimiento,
@@ -242,6 +244,31 @@ export async function deleteFlujo(id: number) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   return db.delete(flujos).where(eq(flujos.id, id));
+}
+
+// ─── Plantillas Sociales ──────────────────────────────────────────────────────
+export async function getPlantillasSociales() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(plantillasSociales).orderBy(desc(plantillasSociales.createdAt));
+}
+
+export async function createPlantillaSocial(data: InsertPlantillaSocial) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.insert(plantillasSociales).values(data);
+}
+
+export async function updatePlantillaSocial(id: number, data: Partial<InsertPlantillaSocial>) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.update(plantillasSociales).set({ ...data, updatedAt: new Date() }).where(eq(plantillasSociales.id, id));
+}
+
+export async function deletePlantillaSocial(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.delete(plantillasSociales).where(eq(plantillasSociales.id, id));
 }
 
 // ─── Pasos de Flujo ───────────────────────────────────────────────────────────

@@ -926,6 +926,31 @@ export const appRouter = router({
   productos: productosRouter,
   campanas: campanasRouter,
   plantillas: plantillasRouter,
+  plantillasSociales: router({
+    list: protectedProcedure.query(() => db.getPlantillasSociales()),
+    create: protectedProcedure
+      .input(z.object({
+        nombre: z.string().min(1),
+        plataforma: z.enum(["instagram", "tiktok", "facebook", "youtube"]),
+        palabraClave: z.string().min(1),
+        mensajeRespuesta: z.string().min(1),
+        activo: z.boolean().default(true),
+      }))
+      .mutation(({ input }) => db.createPlantillaSocial(input)),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        nombre: z.string().min(1).optional(),
+        plataforma: z.enum(["instagram", "tiktok", "facebook", "youtube"]).optional(),
+        palabraClave: z.string().min(1).optional(),
+        mensajeRespuesta: z.string().min(1).optional(),
+        activo: z.boolean().optional(),
+      }))
+      .mutation(({ input }) => { const { id, ...data } = input; return db.updatePlantillaSocial(id, data); }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ input }) => db.deletePlantillaSocial(input.id)),
+  }),
   flujos: flujosRouter,
   interacciones: interaccionesRouter,
   etiquetas: etiquetasRouter,

@@ -244,6 +244,21 @@ export const mensajesWhatsapp = mysqlTable("mensajes_whatsapp", {
 export type MensajeWhatsapp = typeof mensajesWhatsapp.$inferSelect;
 export type InsertMensajeWhatsapp = typeof mensajesWhatsapp.$inferInsert;
 
+// ─── Plantillas de Respuesta Social (Instagram / TikTok) ──────────────────────
+export const plantillasSociales = mysqlTable("plantillas_sociales", {
+  id: int("id").autoincrement().primaryKey(),
+  nombre: varchar("nombre", { length: 200 }).notNull(),
+  plataforma: mysqlEnum("plataforma", ["instagram", "tiktok", "facebook", "youtube"]).notNull(),
+  palabraClave: varchar("palabraClave", { length: 100 }).notNull(), // ej. "INFO", "LIBRO", "PRECIO"
+  mensajeRespuesta: text("mensajeRespuesta").notNull(),
+  activo: boolean("activo").notNull().default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PlantillaSocial = typeof plantillasSociales.$inferSelect;
+export type InsertPlantillaSocial = typeof plantillasSociales.$inferInsert;
+
 // ─── Publicaciones en Redes Sociales ───────────────────────────────────────────
 export const publicacionesRedes = mysqlTable("publicaciones_redes", {
   id: int("id").autoincrement().primaryKey(),

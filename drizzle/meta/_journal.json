@@ -50,6 +50,13 @@
       "when": 1786498373102,
       "tag": "0006_narrow_juggernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1786554492528,
+      "tag": "0007_normal_sentry",
+      "breakpoints": true
     }
   ]
 }
