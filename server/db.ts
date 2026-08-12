@@ -346,14 +346,23 @@ export async function deleteEtiqueta(id: number) {
 export async function getEmbudos() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(embudos).orderBy(desc(embudos.createdAt));
+  try {
+    return await db.select().from(embudos).orderBy(desc(embudos.createdAt));
+  } catch (err) {
+    console.warn("Tabla embudos pendiente de sincronización:", err);
+    return [];
+  }
 }
 
 export async function getEmbudoBySlug(slug: string) {
   const db = await getDb();
   if (!db) return undefined;
-  const res = await db.select().from(embudos).where(eq(embudos.slug, slug)).limit(1);
-  return res[0];
+  try {
+    const res = await db.select().from(embudos).where(eq(embudos.slug, slug)).limit(1);
+    return res[0];
+  } catch {
+    return undefined;
+  }
 }
 
 export async function createEmbudo(data: InsertEmbudo) {
