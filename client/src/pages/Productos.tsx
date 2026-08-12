@@ -1,16 +1,16 @@
-import { useMemo, useState } from "react";
+import React, { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { filterProductsByNiche, getProductNiches } from "@shared/commercial";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Copy, ExternalLink, Filter, Pencil, Plus, Search, Sparkles, Tag, Trash2, Users, WalletCards } from "lucide-react";
+import { Copy, ExternalLink, Filter, Pencil, Plus, Search, Sparkles, Tag, Trash2, WalletCards, BookOpen, Star } from "lucide-react";
 
 function ProductoForm({ open, onClose, initial }: { open: boolean; onClose: () => void; initial?: any }) {
   const utils = trpc.useUtils();
@@ -20,7 +20,10 @@ function ProductoForm({ open, onClose, initial }: { open: boolean; onClose: () =
     descripcion: initial?.descripcion ?? "",
     enlaceAfiliado: initial?.enlaceAfiliado ?? "",
     precio: initial?.precio ?? 0,
-    categoria: initial?.categoria ?? "",
+    categoria: initial?.categoria ?? "Finanzas",
+    imagenUrl: initial?.imagenUrl ?? "",
+    rating: initial?.rating ?? 9.5,
+    comentariosCount: initial?.comentariosCount ?? 150,
     activo: initial?.activo ?? true,
   });
 
@@ -52,14 +55,19 @@ function ProductoForm({ open, onClose, initial }: { open: boolean; onClose: () =
           </div>
           <div className="space-y-1.5">
             <Label>Descripción comercial</Label>
-            <textarea className="min-h-24 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" value={form.descripcion} onChange={(event) => setForm((current) => ({ ...current, descripcion: event.target.value }))} placeholder="¿Qué problema ayuda a resolver?" />
-          </div>
-          <div className="space-y-1.5">
-            <Label>HotLink de afiliado *</Label>
-            <Input type="url" value={form.enlaceAfiliado} onChange={(event) => setForm((current) => ({ ...current, enlaceAfiliado: event.target.value }))} required placeholder="https://go.hotmart.com/..." />
-            <p className="text-[11px] text-muted-foreground">Conserva siempre el enlace de divulgación de Hotmart para atribuir la comisión.</p>
+            <textarea className="min-h-20 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" value={form.descripcion} onChange={(event) => setForm((current) => ({ ...current, descripcion: event.target.value }))} placeholder="¿Qué problema ayuda a resolver?" />
           </div>
           <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>HotLink de afiliado *</Label>
+              <Input type="url" value={form.enlaceAfiliado} onChange={(event) => setForm((current) => ({ ...current, enlaceAfiliado: event.target.value }))} required placeholder="https://go.hotmart.com/..." />
+            </div>
+            <div className="space-y-1.5">
+              <Label>URL de imagen (Portada)</Label>
+              <Input type="url" value={form.imagenUrl} onChange={(event) => setForm((current) => ({ ...current, imagenUrl: event.target.value }))} placeholder="https://images.unsplash.com/..." />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <Label>Precio (USD)</Label>
               <Input type="number" min="0" step="0.01" value={form.precio} onChange={(event) => setForm((current) => ({ ...current, precio: Number(event.target.value) || 0 }))} />
@@ -67,6 +75,10 @@ function ProductoForm({ open, onClose, initial }: { open: boolean; onClose: () =
             <div className="space-y-1.5">
               <Label>Nicho / categoría</Label>
               <Input value={form.categoria} onChange={(event) => setForm((current) => ({ ...current, categoria: event.target.value }))} placeholder="Finanzas, Salud..." />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Calificación Hotmart</Label>
+              <Input type="number" min="1" max="10" step="0.1" value={form.rating} onChange={(event) => setForm((current) => ({ ...current, rating: Number(event.target.value) || 9.5 }))} />
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 p-3">
@@ -109,9 +121,9 @@ export default function Productos() {
     <div className="space-y-7 p-5 md:p-8">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary"><Sparkles className="h-3.5 w-3.5" /> Motor de ofertas</div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">Catálogo por nichos</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Organiza tus ebooks, identifica el problema que resuelve cada uno y comparte el HotLink correcto en un solo movimiento.</p>
+          <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary"><Sparkles className="h-3.5 w-3.5" /> Motor de ofertas Hotmart</div>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">Catálogo de Ebooks y Nichos</h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Gestiona tus 30+ ebooks con tarjetas visuales optimizadas. Puedes subir tus propios productos o dejar que el CRM organice tus enlaces de afiliado.</p>
         </div>
         <Button onClick={() => setShowForm(true)} className="min-h-11 gap-2 px-5 shadow-sm"><Plus className="h-4 w-4" /> Agregar ebook</Button>
       </header>
@@ -119,7 +131,7 @@ export default function Productos() {
       <section className="grid gap-3 sm:grid-cols-3" aria-label="Resumen del catálogo">
         <Card className="border-border/80"><CardContent className="flex items-center gap-3 p-4"><div className="rounded-xl bg-primary/10 p-2.5 text-primary"><WalletCards className="h-5 w-5" /></div><div><p className="text-2xl font-bold">{productos.length}</p><p className="text-xs text-muted-foreground">Ebooks en catálogo</p></div></CardContent></Card>
         <Card className="border-border/80"><CardContent className="flex items-center gap-3 p-4"><div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-600"><Tag className="h-5 w-5" /></div><div><p className="text-2xl font-bold">{nicheCount}</p><p className="text-xs text-muted-foreground">Nichos activos</p></div></CardContent></Card>
-        <Card className="border-border/80"><CardContent className="flex items-center gap-3 p-4"><div className="rounded-xl bg-violet-500/10 p-2.5 text-violet-600"><Users className="h-5 w-5" /></div><div><p className="text-2xl font-bold">{activeCount}</p><p className="text-xs text-muted-foreground">Listos para promoción</p></div></CardContent></Card>
+        <Card className="border-border/80"><CardContent className="flex items-center gap-3 p-4"><div className="rounded-xl bg-violet-500/10 p-2.5 text-violet-600"><BookOpen className="h-5 w-5" /></div><div><p className="text-2xl font-bold">{activeCount}</p><p className="text-xs text-muted-foreground">Listos para promoción</p></div></CardContent></Card>
       </section>
 
       <section className="space-y-3" aria-label="Filtros del catálogo">
@@ -132,11 +144,76 @@ export default function Productos() {
         </div>
       </section>
 
-      {isLoading ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{Array.from({ length: 6 }).map((_, index) => <Skeleton key={index} className="h-64 rounded-2xl" />)}</div> : filtered.length === 0 ? <Card className="border-dashed"><CardContent className="py-16 text-center"><Search className="mx-auto mb-3 h-9 w-9 text-muted-foreground/40" /><p className="font-medium">No encontramos ebooks con esos criterios.</p><p className="mt-1 text-sm text-muted-foreground">Prueba otro nicho o registra un nuevo producto.</p></CardContent></Card> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{filtered.map((product: any) => <Card key={product.id} className={`group relative overflow-hidden rounded-2xl border-border/80 transition duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg ${!product.activo ? "opacity-60" : ""}`}>
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-violet-500 to-emerald-400" />
-        <CardHeader className="pb-3 pt-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center gap-2">{product.categoria && <Badge variant="secondary" className="gap-1 text-[10px]"><Tag className="h-2.5 w-2.5" />{product.categoria}</Badge>}<Badge variant={product.activo ? "default" : "secondary"} className="text-[10px]">{product.activo ? "Activo" : "Pausado"}</Badge></div><h2 className="line-clamp-2 text-base font-semibold leading-tight">{product.nombre}</h2></div><div className="flex shrink-0 gap-1"><Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => setEditItem(product)} aria-label={`Editar ${product.nombre}`}><Pencil className="h-3.5 w-3.5" /></Button><Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-destructive hover:text-destructive" onClick={() => { if (window.confirm(`¿Eliminar "${product.nombre}"?`)) deleteProducto.mutate({ id: product.id }); }} aria-label={`Eliminar ${product.nombre}`}><Trash2 className="h-3.5 w-3.5" /></Button></div></div></CardHeader>
-        <CardContent className="space-y-4 pt-0"><p className="min-h-10 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{product.descripcion || "Añade una promesa clara del problema que este ebook ayuda a resolver."}</p><div className="flex items-end justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Precio de oferta</p><p className="text-xl font-bold text-foreground">${Number(product.precio || 0).toFixed(2)} <span className="text-xs font-medium text-muted-foreground">USD</span></p></div><span className="text-xs text-muted-foreground">Comisión según Hotmart</span></div><div className="grid grid-cols-2 gap-2"><Button variant="outline" className="min-h-10 gap-1.5" onClick={() => copyHotLink(product.enlaceAfiliado)}><Copy className="h-3.5 w-3.5" /> Copiar HotLink</Button><Button asChild className="min-h-10 gap-1.5"><a href={product.enlaceAfiliado} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5" /> Abrir oferta</a></Button></div></CardContent>
-      </Card>)}</div>}
+      {isLoading ? (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-96 rounded-2xl" />)}</div>
+      ) : filtered.length === 0 ? (
+        <Card className="border-dashed"><CardContent className="py-16 text-center"><Search className="mx-auto mb-3 h-9 w-9 text-muted-foreground/40" /><p className="font-medium">No encontramos ebooks con esos criterios.</p><p className="mt-1 text-sm text-muted-foreground">Prueba otro nicho o registra un nuevo producto.</p></CardContent></Card>
+      ) : (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {filtered.map((product: any) => {
+            const defaultImg = "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600&auto=format&fit=crop&q=80";
+            const imageUrl = product.imagenUrl || defaultImg;
+            return (
+              <Card key={product.id} className={`group relative flex flex-col overflow-hidden rounded-2xl border-border/80 bg-card transition duration-200 hover:-translate-y-1 hover:shadow-xl ${!product.activo ? "opacity-60" : ""}`}>
+                {/* Imagen destacada superior */}
+                <div className="relative h-48 w-full overflow-hidden bg-muted">
+                  <img src={imageUrl} alt={product.nombre} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+                  <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/60 to-transparent" />
+                  <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+                    <Badge className="bg-primary/90 text-primary-foreground backdrop-blur-sm text-[10px] font-medium border-0">
+                      {product.categoria || "Ebook"}
+                    </Badge>
+                    <div className="flex items-center gap-1 rounded bg-black/70 px-2 py-0.5 text-white backdrop-blur-sm text-xs font-semibold">
+                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                      <span>{Number(product.rating || 9.5).toFixed(1)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contenido comercial */}
+                <CardContent className="flex flex-1 flex-col justify-between p-4 space-y-3">
+                  <div className="space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <h2 className="line-clamp-2 font-display text-base font-bold leading-snug text-foreground" title={product.nombre}>
+                        {product.nombre}
+                      </h2>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Hotmart Afiliados</p>
+                    <p className="line-clamp-3 text-xs leading-relaxed text-muted-foreground pt-1">
+                      {product.descripcion || "Promociona este ebook y gana comisiones automáticas con seguimiento por WhatsApp."}
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 pt-2 border-t border-border/60">
+                    <div className="flex items-center justify-between">
+                      <button onClick={() => copyHotLink(product.enlaceAfiliado)} className="text-xs text-primary font-medium hover:underline flex items-center gap-1">
+                        <Copy className="h-3 w-3" /> Copiar HotLink
+                      </button>
+                      <button onClick={() => setEditItem(product)} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+                        <Pencil className="h-3 w-3" /> Editar
+                      </button>
+                    </div>
+
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Precio oferta</p>
+                        <p className="text-lg font-bold text-foreground">
+                          ${Number(product.precio || 0).toFixed(2)} <span className="text-xs font-medium text-muted-foreground">USD</span>
+                        </p>
+                      </div>
+                      <Button asChild size="sm" className="h-9 px-3 gap-1 shadow-sm">
+                        <a href={product.enlaceAfiliado} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3 w-3" /> Ver oferta
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       <ProductoForm open={showForm || Boolean(editItem)} onClose={() => { setShowForm(false); setEditItem(null); }} initial={editItem} />
     </div>

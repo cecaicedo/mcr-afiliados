@@ -43,6 +43,13 @@
       "when": 1786497706032,
       "tag": "0005_abandoned_moonstone",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1786498373102,
+      "tag": "0006_narrow_juggernaut",
+      "breakpoints": true
     }
   ]
 }

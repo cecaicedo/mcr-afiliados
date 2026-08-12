@@ -267,6 +267,9 @@ const productosRouter = router({
       enlaceAfiliado: z.string().url(),
       precio: z.number().min(0),
       categoria: z.string().optional(),
+      imagenUrl: z.string().optional(),
+      rating: z.number().optional(),
+      comentariosCount: z.number().optional(),
       activo: z.boolean().default(true),
     }))
     .mutation(({ input }) => db.createProducto(input)),
@@ -279,6 +282,9 @@ const productosRouter = router({
       enlaceAfiliado: z.string().url().optional(),
       precio: z.number().min(0).optional(),
       categoria: z.string().optional(),
+      imagenUrl: z.string().optional(),
+      rating: z.number().optional(),
+      comentariosCount: z.number().optional(),
       activo: z.boolean().optional(),
     }))
     .mutation(({ input }) => { const { id, ...data } = input; return db.updateProducto(id, data); }),

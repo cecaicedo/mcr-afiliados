@@ -104,3 +104,10 @@
 - [x] Completar revisión de accesibilidad, responsive y estados loading/error/empty de los módulos rediseñados
 - [x] Asegurar descubrimiento y ejecución explícita de las pruebas nuevas de utilidades comerciales
 - [x] Adaptar el handler programado /api/scheduled/recordatorios al envío real con consentimiento, variables y resultado
+
+## Rediseño visual de tarjetas de catálogo (Estilo Referencia)
+- [ ] Añadir campo `imagenUrl` a la tabla de productos en la base de datos
+- [ ] Actualizar schema, router y formulario de productos para soportar imagen destacada y rating opcional
+- [ ] Rediseñar la página Productos.tsx con tarjetas verticales estilo galería (imagen superior, categoría, título, badge de puntuación, descripción corta, y precio destacado inferior)
+- [ ] Soportar subida manual por parte del usuario o importación masiva automática de los 30+ ebooks distribuidos por nicho
+- [ ] Verificar tests y guardar checkpoint final con la nueva UI de catálogo
