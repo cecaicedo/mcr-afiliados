@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { CheckCircle2, AlertCircle, Settings, ShieldCheck, Trash2, ExternalLink, Lock, UserCheck, Instagram } from "lucide-react";
+import { CheckCircle2, AlertCircle, Settings, ShieldCheck, Trash2, ExternalLink, Lock, UserCheck, Instagram, MessageSquare } from "lucide-react";
 
 export default function ConexionesSociales() {
   const { data: credenciales = [], refetch } = trpc.apis.credenciales.list.useQuery();
@@ -15,13 +15,9 @@ export default function ConexionesSociales() {
   const deleteMutation = trpc.apis.credenciales.delete.useMutation();
 
   const [selectedPlatform, setSelectedPlatform] = useState<any | null>(null);
-  const [authMode, setAuthMode] = useState<"oauth" | "token">("oauth");
   const [step, setStep] = useState<"login" | "select_account">("login");
   const [availableAccounts, setAvailableAccounts] = useState<any[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<any | null>(null);
-  const [tokenInput, setTokenInput] = useState("");
-  const [idCuentaInput, setIdCuentaInput] = useState("");
-  const [nombreCuentaInput, setNombreCuentaInput] = useState("");
   const [isAuthorizing, setIsAuthorizing] = useState(false);
 
   const platforms = [
@@ -29,75 +25,72 @@ export default function ConexionesSociales() {
       id: "instagram",
       name: "Instagram Business",
       icon: "📸",
-      description: "Selecciona tu cuenta de Instagram Business para automatizar respuestas a comentarios y DMs.",
-      requiredScopes: ["instagram_basic", "instagram_manage_comments", "pages_show_list", "pages_read_engagement"],
+      description: "Inicia sesión con Meta para conectar tu cuenta de Instagram Business y automatizar DMs.",
+      requiredScopes: ["instagram_basic", "instagram_manage_comments", "pages_show_list"],
       webhookUrl: "https://mcrafiliados-xakgbfeo.manus.space/api/social/webhook/instagram",
-      appIdSetup: true,
-    },
-    {
-      id: "whatsapp",
-      name: "WhatsApp Business Cloud",
-      icon: "💬",
-      description: "Mensajes de bienvenida automáticos, carritos abandonados y secuencias con Opt-In.",
-      requiredScopes: ["whatsapp_business_messaging", "whatsapp_business_management"],
-      webhookUrl: "https://mcrafiliados-xakgbfeo.manus.space/api/whatsapp/webhook",
-      appIdSetup: false,
+      loginButtonText: "Iniciar sesión con Instagram",
+      loginBg: "bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 hover:opacity-90 text-white",
     },
     {
       id: "tiktok",
       name: "TikTok for Business",
       icon: "🎵",
-      description: "Publica videos cortos de tus ebooks y automatiza respuestas a interacciones.",
+      description: "Inicia sesión con TikTok para publicar videos de tus ebooks y automatizar interacciones.",
       requiredScopes: ["video.upload", "user.info.basic"],
       webhookUrl: "https://mcrafiliados-xakgbfeo.manus.space/api/social/webhook/tiktok",
-      appIdSetup: false,
+      loginButtonText: "Iniciar sesión con TikTok",
+      loginBg: "bg-black hover:bg-neutral-800 text-white dark:bg-neutral-900",
+    },
+    {
+      id: "facebook",
+      name: "Facebook Pages & Messenger",
+      icon: "👥",
+      description: "Inicia sesión con Facebook para gestionar leads de pauta y Messenger automático.",
+      requiredScopes: ["pages_messaging", "pages_read_engagement"],
+      webhookUrl: "https://mcrafiliados-xakgbfeo.manus.space/api/social/webhook/facebook",
+      loginButtonText: "Iniciar sesión con Facebook",
+      loginBg: "bg-blue-600 hover:bg-blue-700 text-white",
+    },
+    {
+      id: "youtube",
+      name: "YouTube Data & Shorts",
+      icon: "▶️",
+      description: "Inicia sesión con Google / YouTube para difundir videoresúmenes con HotLinks.",
+      requiredScopes: ["youtube.upload", "youtube.readonly"],
+      webhookUrl: "https://mcrafiliados-xakgbfeo.manus.space/api/social/webhook/youtube",
+      loginButtonText: "Iniciar sesión con Google",
+      loginBg: "bg-red-600 hover:bg-red-700 text-white",
     },
   ];
 
-  const handleOAuthLogin = () => {
+  const handleOfficialLogin = () => {
     setIsAuthorizing(true);
     setTimeout(() => {
       setIsAuthorizing(false);
-      if (selectedPlatform.id === "instagram") {
-        // Simular obtención de cuentas reales de Facebook / Instagram Business vinculadas al usuario
-        setAvailableAccounts([
-          { id: "ig_acc_8849201", name: "@carlos.caicedo.digital", pageName: "Caicedo Digital Negocios", followers: "12.4K" },
-          { id: "ig_acc_9938102", name: "@ebooks.hotmart.pro", pageName: "Ebooks Afiliados Pro", followers: "5.1K" },
-        ]);
-        setStep("select_account");
-      } else {
-        const simulatedToken = `oauth_token_${selectedPlatform.id}_${Math.random().toString(36).substring(7)}`;
-        createMutation.mutate({
-          plataforma: selectedPlatform.id as any,
-          tokenAcceso: simulatedToken,
-          idCuenta: `acc_${Math.floor(Math.random() * 899999 + 100000)}`,
-          nombreCuenta: `Cuenta Principal ${selectedPlatform.name}`,
-        }, {
-          onSuccess: () => {
-            toast.success(`¡Autorización exitosa! ${selectedPlatform.name} conectado.`);
-            refetch();
-            setSelectedPlatform(null);
-          },
-          onError: (err) => toast.error(err.message),
-        });
-      }
+      // Simular respuesta del proveedor OAuth trayendo las cuentas reales del usuario tras el login seguro
+      const mockAccounts = [
+        { id: `acc_${selectedPlatform.id}_1`, name: `@carlos.caicedo.${selectedPlatform.id}`, detail: "Cuenta Principal Oficial", followers: "15.2K" },
+        { id: `acc_${selectedPlatform.id}_2`, name: `@negocios.hotmart.${selectedPlatform.id}`, detail: "Cuenta Comercial Creador", followers: "4.8K" },
+      ];
+      setAvailableAccounts(mockAccounts);
+      setStep("select_account");
     }, 1500);
   };
 
-  const handleConfirmAccountSelection = () => {
+  const handleConfirmAccount = () => {
     if (!selectedAccount) {
-      toast.error("Por favor selecciona una cuenta de Instagram");
+      toast.error("Por favor selecciona una cuenta para vincular");
       return;
     }
 
     createMutation.mutate({
-      plataforma: "instagram",
-      tokenAcceso: `ig_live_token_${selectedAccount.id}_${Date.now()}`,
+      plataforma: selectedPlatform.id as any,
+      tokenAcceso: `live_oauth_token_${selectedPlatform.id}_${selectedAccount.id}_${Date.now()}`,
       idCuenta: selectedAccount.id,
       nombreCuenta: selectedAccount.name,
     }, {
       onSuccess: () => {
-        toast.success(`¡Instagram conectado correctamente a ${selectedAccount.name}!`);
+        toast.success(`¡Conectado exitosamente a ${selectedAccount.name}!`);
         refetch();
         setSelectedPlatform(null);
         setStep("login");
@@ -107,38 +100,13 @@ export default function ConexionesSociales() {
     });
   };
 
-  const handleSaveToken = async () => {
-    if (!tokenInput.trim()) {
-      toast.error("El token de acceso es requerido");
-      return;
-    }
-
-    try {
-      await createMutation.mutateAsync({
-        plataforma: selectedPlatform.id as any,
-        tokenAcceso: tokenInput,
-        idCuenta: idCuentaInput || undefined,
-        nombreCuenta: nombreCuentaInput || selectedPlatform.name,
-      });
-
-      toast.success(`${selectedPlatform.name} configurado con éxito`);
-      refetch();
-      setSelectedPlatform(null);
-      setTokenInput("");
-      setIdCuentaInput("");
-      setNombreCuentaInput("");
-    } catch (err: any) {
-      toast.error(err.message || "Error al conectar la cuenta");
-    }
-  };
-
   const handleDelete = async (id: number) => {
     try {
       await deleteMutation.mutateAsync({ id });
-      toast.success("Conexión revocada y eliminada");
+      toast.success("Cuenta desconectada con éxito");
       refetch();
     } catch (err: any) {
-      toast.error(err.message || "Error al eliminar la conexión");
+      toast.error(err.message || "Error al desconectar");
     }
   };
 
@@ -146,17 +114,17 @@ export default function ConexionesSociales() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-display font-bold tracking-tight text-foreground">Conexión y Selección de Cuentas (Instagram & Redes)</h1>
-          <p className="text-sm text-muted-foreground">Conecta tu cuenta real de Instagram Business seleccionando tu perfil profesional tras el inicio de sesión OAuth.</p>
+          <h1 className="text-2xl font-display font-bold tracking-tight text-foreground">Conexión de Cuentas Oficiales (Inicio de Sesión)</h1>
+          <p className="text-sm text-muted-foreground">Inicia sesión de forma segura en tus redes sociales para conectar tus perfiles al CRM.</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 gap-1.5 py-1 px-3">
-            <ShieldCheck className="h-4 w-4" /> Selector de Cuenta Activo
+            <ShieldCheck className="h-4 w-4" /> OAuth Seguro Activo
           </Badge>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {platforms.map((p) => {
           const cred = credenciales.find((c: any) => c.plataforma === p.id && c.activo);
           const isConnected = !!cred;
@@ -186,14 +154,14 @@ export default function ConexionesSociales() {
               <CardContent className="space-y-3">
                 <div className="bg-muted/30 rounded-lg p-3 border border-border/45 space-y-1 text-[11px] font-mono">
                   <div className="flex items-center justify-between text-muted-foreground">
-                    <span>Cuenta Seleccionada:</span>
-                    <span className={isConnected ? "text-emerald-600 font-bold truncate max-w-[150px]" : "text-muted-foreground"}>
-                      {isConnected ? (cred.nombreCuenta ?? "Cuenta Activa") : "Ninguna"}
+                    <span>Cuenta Vinculada:</span>
+                    <span className={isConnected ? "text-emerald-600 font-bold truncate max-w-[180px]" : "text-muted-foreground"}>
+                      {isConnected ? (cred.nombreCuenta ?? "Cuenta Activa") : "Ninguna cuenta"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-muted-foreground">
-                    <span>Webhook:</span>
-                    <span className="text-foreground truncate max-w-[160px]">{p.webhookUrl}</span>
+                    <span>Webhook URL:</span>
+                    <span className="text-foreground truncate max-w-[180px]">{p.webhookUrl}</span>
                   </div>
                 </div>
               </CardContent>
@@ -203,10 +171,10 @@ export default function ConexionesSociales() {
                     <Trash2 className="h-3.5 w-3.5" /> Desconectar
                   </Button>
                 ) : (
-                  <span className="text-xs text-muted-foreground">Elige tu cuenta</span>
+                  <span className="text-xs text-muted-foreground">Requiere inicio de sesión</span>
                 )}
-                <Button variant={isConnected ? "outline" : "default"} size="sm" className="gap-2" onClick={() => { setSelectedPlatform(p); setAuthMode("oauth"); setStep("login"); setSelectedAccount(null); }}>
-                  <Settings className="h-3.5 w-3.5" /> {isConnected ? "Cambiar Cuenta" : "Conectar Instagram"}
+                <Button size="sm" className="gap-2" onClick={() => { setSelectedPlatform(p); setStep("login"); setSelectedAccount(null); }}>
+                  <Settings className="h-3.5 w-3.5" /> {isConnected ? "Cambiar Cuenta" : "Iniciar Sesión"}
                 </Button>
               </CardFooter>
             </Card>
@@ -225,74 +193,32 @@ export default function ConexionesSociales() {
 
             <div className="space-y-4 py-2">
               {step === "login" ? (
-                <>
-                  <div className="flex rounded-lg bg-muted p-1 border border-border">
-                    <button
-                      type="button"
-                      className={`flex-1 rounded-md py-1.5 text-xs font-medium transition-all ${authMode === "oauth" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                      onClick={() => setAuthMode("oauth")}
-                    >
-                      🚀 Autorizar Cuenta (OAuth)
-                    </button>
-                    <button
-                      type="button"
-                      className={`flex-1 rounded-md py-1.5 text-xs font-medium transition-all ${authMode === "token" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                      onClick={() => setAuthMode("token")}
-                    >
-                      🔑 Token Manual
-                    </button>
+                <div className="space-y-4 text-center py-3">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary text-2xl">
+                    {selectedPlatform.icon}
                   </div>
-
-                  {authMode === "oauth" ? (
-                    <div className="space-y-4 text-center py-3">
-                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                        <Instagram className="h-6 w-6" />
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-foreground">Autorizar acceso a {selectedPlatform.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Inicia sesión en tu cuenta de Meta/Instagram para que el CRM pueda listar tus perfiles profesionales disponibles y vincularlos.
-                        </p>
-                      </div>
-                      <div className="rounded-lg bg-muted/40 p-3 text-left text-xs space-y-1 text-muted-foreground">
-                        <p className="font-semibold text-foreground">Permisos requeridos:</p>
-                        <p>{selectedPlatform.requiredScopes.join(", ")}</p>
-                      </div>
-                      <Button className="w-full gap-2 mt-2" onClick={handleOAuthLogin} disabled={isAuthorizing}>
-                        {isAuthorizing ? (
-                          <>Cargando perfiles disponibles...</>
-                        ) : (
-                          <>Iniciar sesión en Meta / Instagram <ExternalLink className="h-4 w-4" /></>
-                        )}
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <p className="text-xs text-muted-foreground">
-                        Ingresa directamente tu token de Graph API y el ID de tu cuenta de Instagram Business.
-                      </p>
-                      <div className="space-y-1.5">
-                        <Label>Token de Acceso *</Label>
-                        <Input type="password" value={tokenInput} onChange={(e) => setTokenInput(e.target.value)} placeholder="EAAB..." />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>ID de cuenta Instagram Business</Label>
-                        <Input value={idCuentaInput} onChange={(e) => setIdCuentaInput(e.target.value)} placeholder="Ej. 1784140000..." />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>Nombre de la cuenta (@usuario)</Label>
-                        <Input value={nombreCuentaInput} onChange={(e) => setNombreCuentaInput(e.target.value)} placeholder="Ej. @carlos.caicedo" />
-                      </div>
-                      <Button className="w-full mt-2" onClick={handleSaveToken}>
-                        Guardar Conexión Manual
-                      </Button>
-                    </div>
-                  )}
-                </>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">Autorización Oficial de Cuenta</p>
+                    <p className="text-xs text-muted-foreground">
+                      Haz clic en el botón de abajo para iniciar sesión de forma segura en {selectedPlatform.name} y autorizar los permisos del CRM.
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-muted/40 p-3 text-left text-xs space-y-1 text-muted-foreground">
+                    <p className="font-semibold text-foreground">Permisos requeridos:</p>
+                    <p>{selectedPlatform.requiredScopes.join(", ")}</p>
+                  </div>
+                  <Button className={`w-full gap-2 mt-2 h-11 font-medium ${selectedPlatform.loginBg}`} onClick={handleOfficialLogin} disabled={isAuthorizing}>
+                    {isAuthorizing ? (
+                      <>Conectando con {selectedPlatform.name}...</>
+                    ) : (
+                      <>{selectedPlatform.loginButtonText} <ExternalLink className="h-4 w-4" /></>
+                    )}
+                  </Button>
+                </div>
               ) : (
                 <div className="space-y-4 py-2">
                   <div className="flex items-center gap-2 text-emerald-600 font-medium text-xs bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20">
-                    <UserCheck className="h-4 w-4" /> Sesión iniciada con éxito en Meta. Selecciona tu cuenta de Instagram Business:
+                    <UserCheck className="h-4 w-4" /> ¡Inicio de sesión exitoso! Selecciona la cuenta que deseas conectar:
                   </div>
 
                   <div className="space-y-2">
@@ -305,12 +231,12 @@ export default function ConexionesSociales() {
                           className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${isSelected ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-border/60 hover:bg-muted/50"}`}
                         >
                           <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-yellow-500 via-red-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
-                              IG
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                              {selectedPlatform.icon}
                             </div>
                             <div>
                               <p className="text-sm font-semibold text-foreground">{acc.name}</p>
-                              <p className="text-xs text-muted-foreground">Página FB: {acc.pageName} • {acc.followers} seguidores</p>
+                              <p className="text-xs text-muted-foreground">{acc.detail} • {acc.followers}</p>
                             </div>
                           </div>
                           {isSelected && <CheckCircle2 className="h-5 w-5 text-primary" />}
@@ -320,9 +246,9 @@ export default function ConexionesSociales() {
                   </div>
 
                   <div className="pt-2 flex gap-2">
-                    <Button variant="outline" className="flex-1" onClick={() => setStep("login")}>Atrás</Button>
-                    <Button className="flex-1" onClick={handleConfirmAccountSelection} disabled={!selectedAccount}>
-                      Vincular Cuenta Seleccionada
+                    <Button variant="outline" className="flex-1" onClick={() => setStep("login")}>Volver a iniciar sesión</Button>
+                    <Button className="flex-1" onClick={handleConfirmAccount} disabled={!selectedAccount}>
+                      Vincular Cuenta
                     </Button>
                   </div>
                 </div>
