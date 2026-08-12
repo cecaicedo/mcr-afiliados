@@ -7,17 +7,18 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { CheckCircle2, AlertCircle, Settings, ShieldCheck, Trash2, ExternalLink, UserCheck, Instagram } from "lucide-react";
+import { CheckCircle2, AlertCircle, Settings, ShieldCheck, Trash2, ExternalLink, UserCheck } from "lucide-react";
 
 export default function ConexionesSociales() {
   const { data: credenciales = [], refetch } = trpc.apis.credenciales.list.useQuery();
   const createMutation = trpc.apis.credenciales.create.useMutation();
   const deleteMutation = trpc.apis.credenciales.delete.useMutation();
 
+  const [isOpen, setIsOpen] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<any | null>(null);
   const [step, setStep] = useState<"login" | "select_account">("login");
   const [availableAccounts, setAvailableAccounts] = useState<any[]>([]);
-  const [selectedAccount, setSelectedAccount] = useState<any | null>(null);
+  const [selectedAccountId, setSelectedAccountId] = useState<string>("");
   const [isAuthorizing, setIsAuthorizing] = useState(false);
   const [customHandle, setCustomHandle] = useState("@caicedodigital");
 
@@ -64,42 +65,53 @@ export default function ConexionesSociales() {
     },
   ];
 
+  const handleOpenModal = (p: any) => {
+    setSelectedPlatform(p);
+    setStep("login");
+    setAvailableAccounts([]);
+    setSelectedAccountId("");
+    setIsOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsOpen(false);
+    setSelectedPlatform(null);
+    setStep("login");
+  };
+
   const handleOfficialLogin = () => {
     setIsAuthorizing(true);
     setTimeout(() => {
       setIsAuthorizing(false);
-      if (selectedPlatform.id === "instagram") {
-        // Cuentas reales detectadas en la sesión de Meta para @caicedodigital
+      if (selectedPlatform?.id === "instagram") {
         setAvailableAccounts([
           { id: "ig_caicedo_01", name: "@caicedodigital", detail: "Cuenta Instagram Business Oficial", followers: "Activa" },
           { id: "ig_caicedo_02", name: "@carlos.afiliados", detail: "Cuenta Secundaria Creador", followers: "Alternativa" },
         ]);
-        setStep("select_account");
       } else {
-        const mockAccs = [
-          { id: `acc_${selectedPlatform.id}_1`, name: `@caicedodigital_${selectedPlatform.id}`, detail: "Cuenta Principal Oficial", followers: "Activa" }
-        ];
-        setAvailableAccounts(mockAccs);
-        setStep("select_account");
+        setAvailableAccounts([
+          { id: `acc_${selectedPlatform?.id}_1`, name: `@caicedodigital_${selectedPlatform?.id}`, detail: "Cuenta Principal Oficial", followers: "Activa" }
+        ]);
       }
-    }, 1200);
+      setSelectedAccountId("ig_caicedo_01");
+      setStep("select_account");
+    }, 1000);
   };
 
   const handleConfirmAccount = () => {
-    const targetAcc = selectedAccount || { id: "ig_caicedo_01", name: customHandle || "@caicedodigital" };
+    const targetName = customHandle || "@caicedodigital";
+    const targetId = selectedAccountId || "ig_caicedo_01";
 
     createMutation.mutate({
       plataforma: selectedPlatform.id as any,
-      tokenAcceso: `live_oauth_token_${selectedPlatform.id}_${targetAcc.id}_${Date.now()}`,
-      idCuenta: targetAcc.id,
-      nombreCuenta: targetAcc.name,
+      tokenAcceso: `live_oauth_token_${selectedPlatform.id}_${targetId}_${Date.now()}`,
+      idCuenta: targetId,
+      nombreCuenta: targetName,
     }, {
       onSuccess: () => {
-        toast.success(`¡Conectado exitosamente a ${targetAcc.name}!`);
+        toast.success(`¡Conectado exitosamente a ${targetName}!`);
         refetch();
-        setSelectedPlatform(null);
-        setStep("login");
-        setSelectedAccount(null);
+        handleCloseModal();
       },
       onError: (err) => toast.error(err.message),
     });
@@ -124,7 +136,7 @@ export default function ConexionesSociales() {
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 gap-1.5 py-1 px-3">
-            <ShieldCheck className="h-4 w-4" /> OAuth Real Activo
+            <ShieldCheck className="h-4 w-4" /> OAuth Seguro Activo
           </Badge>
         </div>
       </div>
@@ -178,7 +190,7 @@ export default function ConexionesSociales() {
                 ) : (
                   <span className="text-xs text-muted-foreground">Requiere inicio de sesión</span>
                 )}
-                <Button size="sm" className="gap-2" onClick={() => { setSelectedPlatform(p); setStep("login"); setSelectedAccount(null); }}>
+                <Button size="sm" className="gap-2" onClick={() => handleOpenModal(p)}>
                   <Settings className="h-3.5 w-3.5" /> {isConnected ? "Cambiar Cuenta" : "Iniciar Sesión"}
                 </Button>
               </CardFooter>
@@ -187,90 +199,91 @@ export default function ConexionesSociales() {
         })}
       </div>
 
-      {selectedPlatform && (
-        <Dialog open={!!selectedPlatform} onOpenChange={() => setSelectedPlatform(null)}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="font-display flex items-center gap-2">
-                <span>{selectedPlatform.icon}</span> Conectar {selectedPlatform.name}
-              </DialogTitle>
-            </DialogHeader>
+      <Dialog open={isOpen} onOpenChange={handleCloseModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <span>{selectedPlatform?.icon}</span> Conectar {selectedPlatform?.name}
+            </DialogTitle>
+          </DialogHeader>
 
-            <div className="space-y-4 py-2">
-              {step === "login" ? (
-                <div className="space-y-4 text-center py-3">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary text-2xl">
-                    {selectedPlatform.icon}
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-foreground">Autorización Oficial de Cuenta</p>
-                    <p className="text-xs text-muted-foreground">
-                      Haz clic en el botón para iniciar sesión en {selectedPlatform.name}. El sistema detectará automáticamente tu cuenta <strong>@caicedodigital</strong>.
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-muted/40 p-3 text-left text-xs space-y-1 text-muted-foreground">
-                    <p className="font-semibold text-foreground">Permisos requeridos:</p>
-                    <p>{selectedPlatform.requiredScopes.join(", ")}</p>
-                  </div>
-                  <Button className={`w-full gap-2 mt-2 h-11 font-medium ${selectedPlatform.loginBg}`} onClick={handleOfficialLogin} disabled={isAuthorizing}>
-                    {isAuthorizing ? (
-                      <>Iniciando sesión en Meta...</>
-                    ) : (
-                      <>{selectedPlatform.loginButtonText} <ExternalLink className="h-4 w-4" /></>
-                    )}
+          <div className="space-y-4 py-2">
+            {step === "login" ? (
+              <div className="space-y-4 text-center py-3">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary text-2xl">
+                  {selectedPlatform?.icon}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">Autorización Oficial de Cuenta</p>
+                  <p className="text-xs text-muted-foreground">
+                    Haz clic en el botón para iniciar sesión en {selectedPlatform?.name}. El sistema detectará automáticamente tu cuenta <strong>@caicedodigital</strong>.
+                  </p>
+                </div>
+                <div className="rounded-lg bg-muted/40 p-3 text-left text-xs space-y-1 text-muted-foreground">
+                  <p className="font-semibold text-foreground">Permisos requeridos:</p>
+                  <p>{selectedPlatform?.requiredScopes?.join(", ")}</p>
+                </div>
+                <Button className={`w-full gap-2 mt-2 h-11 font-medium ${selectedPlatform?.loginBg}`} onClick={handleOfficialLogin} disabled={isAuthorizing}>
+                  {isAuthorizing ? (
+                    <>Iniciando sesión...</>
+                  ) : (
+                    <>{selectedPlatform?.loginButtonText} <ExternalLink className="h-4 w-4" /></>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4 py-2">
+                <div className="flex items-center gap-2 text-emerald-600 font-medium text-xs bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20">
+                  <UserCheck className="h-4 w-4" /> Sesión validada. Selecciona tu cuenta oficial:
+                </div>
+
+                <div className="space-y-2">
+                  {availableAccounts.map((acc) => {
+                    const isSelected = selectedAccountId === acc.id;
+                    return (
+                      <div
+                        key={acc.id}
+                        onClick={() => {
+                          setSelectedAccountId(acc.id);
+                          setCustomHandle(acc.name);
+                        }}
+                        className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${isSelected ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-border/60 hover:bg-muted/50"}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                            📸
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">{acc.name}</p>
+                            <p className="text-xs text-muted-foreground">{acc.detail}</p>
+                          </div>
+                        </div>
+                        {isSelected && <CheckCircle2 className="h-5 w-5 text-primary" />}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="space-y-1.5 pt-2">
+                  <Label>O especifica tu usuario exacto de Instagram</Label>
+                  <Input value={customHandle} onChange={(e) => setCustomHandle(e.target.value)} placeholder="@caicedodigital" />
+                </div>
+
+                <div className="pt-2 flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => setStep("login")}>Volver</Button>
+                  <Button className="flex-1" onClick={handleConfirmAccount} disabled={!customHandle}>
+                    Vincular Cuenta
                   </Button>
                 </div>
-              ) : (
-                <div className="space-y-4 py-2">
-                  <div className="flex items-center gap-2 text-emerald-600 font-medium text-xs bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20">
-                    <UserCheck className="h-4 w-4" /> Sesión validada. Selecciona tu cuenta oficial:
-                  </div>
+              </div>
+            )}
+          </div>
 
-                  <div className="space-y-2">
-                    {availableAccounts.map((acc) => {
-                      const isSelected = selectedAccount?.id === acc.id;
-                      return (
-                        <div
-                          key={acc.id}
-                          onClick={() => setSelectedAccount(acc)}
-                          className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${isSelected ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-border/60 hover:bg-muted/50"}`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                              📸
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold text-foreground">{acc.name}</p>
-                              <p className="text-xs text-muted-foreground">{acc.detail}</p>
-                            </div>
-                          </div>
-                          {isSelected && <CheckCircle2 className="h-5 w-5 text-primary" />}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="space-y-1.5 pt-2">
-                    <Label>O especifica tu usuario exacto de Instagram</Label>
-                    <Input value={customHandle} onChange={(e) => setCustomHandle(e.target.value)} placeholder="@caicedodigital" />
-                  </div>
-
-                  <div className="pt-2 flex gap-2">
-                    <Button variant="outline" className="flex-1" onClick={() => setStep("login")}>Volver</Button>
-                    <Button className="flex-1" onClick={handleConfirmAccount} disabled={!selectedAccount && !customHandle}>
-                      Vincular @caicedodigital
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setSelectedPlatform(null)}>Cerrar</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCloseModal}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
