@@ -12,8 +12,9 @@ import Productos from "./pages/Productos";
 import Flujos from "./pages/Flujos";
 import FlujoDetalle from "./pages/FlujoDetalle";
 import Plantillas from "./pages/Plantillas";
-import Analiticas from "./pages/Analiticas";
-import Configuracion from "./pages/Configuracion";
+import Analiticas from "@/pages/Analiticas";
+import Campanas from "@/pages/Campanas";
+import Configuracion from "@/pages/Configuracion";
 import PublicadorRedes from "./pages/PublicadorRedes";
 
 function Router() {
@@ -28,6 +29,7 @@ function Router() {
         <Route path="/flujos/:id" component={FlujoDetalle} />
         <Route path="/plantillas" component={Plantillas} />
         <Route path="/analiticas" component={Analiticas} />
+        <Route path="/campanas" component={Campanas} />
         <Route path="/configuracion" component={Configuracion} />
         <Route path="/publicador" component={PublicadorRedes} />
         <Route path="/404" component={NotFound} />

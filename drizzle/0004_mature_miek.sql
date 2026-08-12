@@ -1,0 +1,1 @@
+ALTER TABLE `leads` ADD `whatsappOptIn` boolean DEFAULT false NOT NULL;

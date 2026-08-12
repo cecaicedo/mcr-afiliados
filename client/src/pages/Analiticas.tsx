@@ -6,7 +6,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, FunnelChart, Funnel, LabelList,
 } from "recharts";
-import { TrendingUp, Users, ShoppingCart, DollarSign, BarChart3 } from "lucide-react";
+import { TrendingUp, Users, ShoppingCart, DollarSign, BarChart3, Sparkles, Target } from "lucide-react";
 
 const ESTADO_COLORS: Record<string, string> = {
   nuevo: "#3b82f6",
@@ -40,13 +40,11 @@ export default function Analiticas() {
 
   const ventasData = (analytics?.ventasPorProducto ?? []).slice(0, 8);
   const fuentesData = ((analytics as any)?.porFuente ?? []).slice(0, 6);
+  const campanasData = ((analytics as any)?.porCampana ?? []).slice(0, 6);
 
   return (
-    <div className="p-8 space-y-8">
-      <div>
-        <h1 className="text-2xl font-display font-bold text-foreground">Analíticas</h1>
-        <p className="text-sm text-muted-foreground mt-1">Rendimiento de tu embudo de ventas como afiliado</p>
-      </div>
+    <div className="space-y-7 p-5 md:p-8">
+      <div><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary"><Sparkles className="h-3.5 w-3.5" /> Aprendizaje comercial</div><h1 className="font-display text-3xl font-bold tracking-tight text-foreground">Analíticas</h1><p className="mt-1 max-w-2xl text-sm text-muted-foreground">Descubre qué ebook, nicho, fuente y campaña están acercando más leads a la compra.</p></div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -201,6 +199,8 @@ export default function Analiticas() {
           </CardContent>
         </Card>
       </div>
+
+      {campanasData.length > 0 && <Card className="border-border/80"><CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-sm font-semibold"><Target className="h-4 w-4 text-primary" /> Rendimiento por campaña</CardTitle><p className="text-xs text-muted-foreground">Usa este ranking para repetir los ángulos que generan más demanda.</p></CardHeader><CardContent><div className="grid gap-3 md:grid-cols-2">{campanasData.map((item: any, index: number) => { const max = campanasData[0]?.count ?? 1; return <div key={item.campana} className="rounded-xl border border-border/70 p-3"><div className="mb-2 flex items-center justify-between gap-3"><span className="truncate text-xs font-medium">{index + 1}. {item.campana || "Sin atribuir"}</span><Badge variant="secondary" className="shrink-0 text-[10px]">{item.count} leads</Badge></div><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-gradient-to-r from-primary to-violet-500" style={{ width: `${Math.round((item.count / max) * 100)}%` }} /></div></div>; })}</div></CardContent></Card>}
 
       {/* Leads perdidos */}
       {((analytics?.porEstado ?? []).find((e: any) => e.estado === "perdido")?.count ?? 0) > 0 && (

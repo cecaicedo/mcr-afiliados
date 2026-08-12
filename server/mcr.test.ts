@@ -528,6 +528,7 @@ describe("Welcome Messages", () => {
     const result = await caller.leads.create({
       nombre: "Laura",
       telefono: "573001234567",
+      whatsappOptIn: true,
       productoInteresId: 1,
       estado: "nuevo",
     });
@@ -535,6 +536,20 @@ describe("Welcome Messages", () => {
     expect(result).toMatchObject({ insertId: 99 });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string).text.body).toContain("Hola Laura");
+    vi.unstubAllGlobals();
+  });
+
+  it("no envía bienvenida si el lead no dio consentimiento WhatsApp", async () => {
+    vi.mocked(db.createLead).mockResolvedValueOnce({ insertId: 100 } as any);
+    vi.mocked(db.getActiveWelcomeMessage).mockResolvedValueOnce({ productoId: 1, contenido: "Hola {{nombre}}", activo: true } as any);
+    vi.mocked(db.getApiCredentials).mockResolvedValueOnce([{ activo: true, tokenAcceso: "meta-token", idCuenta: "phone-id" }] as any);
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const caller = appRouter.createCaller(makeCtx());
+    await caller.leads.create({ nombre: "Sin consentimiento", telefono: "573001234567", productoInteresId: 1, estado: "nuevo" });
+
+    expect(fetchMock).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
   });
 });

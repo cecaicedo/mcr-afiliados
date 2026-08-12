@@ -25,6 +25,9 @@ import {
   webhooksHotmart,
   apiCredentials,
   InsertApiCredential,
+  campanas,
+  Campana,
+  InsertCampana,
   mensajesWhatsapp,
   InsertMensajeWhatsapp,
   publicacionesRedes,
@@ -72,7 +75,7 @@ export async function getUserByOpenId(openId: string) {
 }
 
 // ─── Leads ────────────────────────────────────────────────────────────────────
-export async function getLeads(filters?: { estado?: string; fuente?: string; campana?: string; productoInteresId?: number; search?: string }) {
+export async function getLeads(filters?: { estado?: string; fuente?: string; campana?: string; campanaId?: number; productoInteresId?: number; search?: string }) {
   const db = await getDb();
   if (!db) return [];
   let query = db.select().from(leads);
@@ -80,6 +83,7 @@ export async function getLeads(filters?: { estado?: string; fuente?: string; cam
   if (filters?.estado) conditions.push(eq(leads.estado, filters.estado as any));
   if (filters?.fuente) conditions.push(eq(leads.fuente, filters.fuente));
   if (filters?.campana) conditions.push(eq(leads.campana, filters.campana));
+  if (filters?.campanaId) conditions.push(eq(leads.campanaId, filters.campanaId));
   if (filters?.productoInteresId) conditions.push(eq(leads.productoInteresId, filters.productoInteresId));
   if (conditions.length > 0) return (query as any).where(and(...conditions)).orderBy(desc(leads.createdAt));
   return query.orderBy(desc(leads.createdAt));
@@ -141,6 +145,38 @@ export async function deleteProducto(id: number) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   return db.delete(productos).where(eq(productos.id, id));
+}
+
+// ─── Campañas y atribución ─────────────────────────────────────────────────────
+export async function getCampanas() {
+  const db = await getDb();
+  if (!db) return [] as Campana[];
+  return db.select().from(campanas).orderBy(desc(campanas.createdAt));
+}
+
+export async function getCampanaById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(campanas).where(eq(campanas.id, id)).limit(1);
+  return result[0];
+}
+
+export async function createCampana(data: InsertCampana) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.insert(campanas).values(data);
+}
+
+export async function updateCampana(id: number, data: Partial<InsertCampana>) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.update(campanas).set({ ...data, updatedAt: new Date() }).where(eq(campanas.id, id));
+}
+
+export async function deleteCampana(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.delete(campanas).where(eq(campanas.id, id));
 }
 
 // ─── Plantillas ───────────────────────────────────────────────────────────────
@@ -358,14 +394,25 @@ export async function getAnalyticsSummary() {
   const allProductos = await db.select().from(productos);
   const ventasPorProducto = await Promise.all(
     allProductos.map(async (p) => {
-      const leadsProducto = allLeads.filter(l => l.productoInteresId === p.id && l.estado === "compro");
-      return { productoId: p.id, nombre: p.nombre, ventas: leadsProducto.length, comision: leadsProducto.length * p.precio * 0.4 };
+      const leadsProducto = allLeads.filter(l => l.productoInteresId === p.id);
+      const ventas = leadsProducto.filter(l => l.estado === "compro").length;
+      return { productoId: p.id, nombre: p.nombre, leads: leadsProducto.length, ventas, comision: ventas * p.precio * 0.4 };
     })
   );
 
+  const countBy = (field: "fuente" | "campana") => {
+    const counts: Record<string, number> = {};
+    allLeads.forEach((lead) => {
+      const value = String(lead[field] ?? "Sin atribuir");
+      counts[value] = (counts[value] ?? 0) + 1;
+    });
+    return Object.entries(counts).map(([name, count]) => ({ [field]: name, count })).sort((a, b) => b.count - a.count);
+  };
+  const porFuente = countBy("fuente");
+  const porCampana = countBy("campana");
   const totalComisiones = ventasPorProducto.reduce((acc, v) => acc + v.comision, 0);
 
-  return { totalLeads, porEstado, conversiones: comprados, tasaConversion, ventasPorProducto, totalComisiones };
+  return { totalLeads, porEstado, conversiones: comprados, tasaConversion, ventasPorProducto, porFuente, porCampana, totalComisiones };
 }
 
 export async function getLeadsInactivos(diasInactividad: number, estados: string[]) {

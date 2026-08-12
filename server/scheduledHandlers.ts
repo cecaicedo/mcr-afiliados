@@ -42,17 +42,61 @@ export async function recordatoriosHandler(req: Request, res: Response) {
         if (plantilla) plantillaContenido = `[Recordatorio automático] ${plantilla.contenido}`;
       }
 
-      for (const lead of leadsAplicables) {
-        // Registrar interacción de recordatorio
-        await db.createInteraccion({
-          leadId: lead.id,
-          tipo: "mensaje_enviado",
-          contenido: plantillaContenido,
-          estadoMensaje: "pendiente",
-          plantillaId: regla.plantillaId || undefined,
-        });
+      const credentials = await db.getApiCredentials("whatsapp");
+      const credential = credentials[0];
+      const hasActiveWhatsApp = credential?.activo && credential.tokenAcceso && credential.idCuenta;
 
-        // Crear registro de recordatorio ejecutado
+      for (const lead of leadsAplicables) {
+        if (!lead.telefono || !lead.whatsappOptIn) {
+          continue; // Respetar estrictamente el Opt-In y requerir teléfono
+        }
+
+        const product = lead.productoInteresId ? await db.getProductoById(lead.productoInteresId) : undefined;
+        // Reemplazar variables correctamente
+        const contenidoFinal = plantillaContenido
+          .replaceAll("{{nombre}}", lead.nombre ?? "amigo")
+          .replaceAll("{{producto}}", product?.nombre ?? "tu producto")
+          .replaceAll("{{enlace}}", product?.enlaceAfiliado ?? "");
+
+        const pending = await db.createMensajeWhatsapp({ leadId: lead.id, contenido: contenidoFinal, estado: "pendiente" });
+        const messageId = Number((pending as any).insertId ?? 0);
+
+        if (hasActiveWhatsApp) {
+          try {
+            const resp = await fetch(`https://graph.facebook.com/v23.0/${credential.idCuenta}/messages`, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${credential.tokenAcceso}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                messaging_product: "whatsapp",
+                recipient_type: "individual",
+                to: lead.telefono.replace(/[^\d]/g, ""),
+                type: "text",
+                text: { preview_url: true, body: contenidoFinal },
+              }),
+            });
+            const bodyResp = await resp.json().catch(() => ({}));
+            if (!resp.ok) {
+              throw new Error((bodyResp as any)?.error?.message || `WhatsApp respondió ${resp.status}`);
+            }
+
+            await db.updateMensajeWhatsapp(messageId, {
+              estado: "enviado",
+              idMensajeWhatsapp: (bodyResp as any).messages?.[0]?.id,
+              enviadoEn: new Date(),
+            });
+            await db.createInteraccion({ leadId: lead.id, tipo: "mensaje_enviado", contenido: contenidoFinal, estadoMensaje: "enviado", plantillaId: regla.plantillaId || undefined });
+          } catch (err) {
+            const errMsg = err instanceof Error ? err.message : "Error desconocido WhatsApp";
+            await db.updateMensajeWhatsapp(messageId, { estado: "error", error: errMsg });
+            await db.createInteraccion({ leadId: lead.id, tipo: "mensaje_enviado", contenido: contenidoFinal, estadoMensaje: "fallido", plantillaId: regla.plantillaId || undefined, metadatos: { error: errMsg } });
+          }
+        } else {
+          await db.updateMensajeWhatsapp(messageId, { estado: "error", error: "Credenciales de WhatsApp inactivas" });
+        }
+
         await db.createRecordatorio({
           leadId: lead.id,
           reglaId: regla.id,

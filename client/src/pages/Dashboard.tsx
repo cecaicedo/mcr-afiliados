@@ -1,260 +1,40 @@
+import { useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import { countAbandonedCartLeads, countAttentionLeads, summarizeLeadsByNiche } from "@shared/commercial";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
-import {
-  TrendingUp,
-  Users,
-  ShoppingCart,
-  DollarSign,
-  Activity,
-  ArrowUpRight,
-} from "lucide-react";
+import { ArrowRight, ArrowUpRight, CheckCircle2, DollarSign, Megaphone, ShoppingCart, Sparkles, TrendingUp, Users, Zap } from "lucide-react";
 
-const ESTADO_COLORS: Record<string, string> = {
-  nuevo: "#3b82f6",
-  contactado: "#f59e0b",
-  interesado: "#8b5cf6",
-  compro: "#10b981",
-  perdido: "#ef4444",
-};
+const STATUS_COLORS: Record<string, string> = { nuevo: "#3b82f6", contactado: "#f59e0b", interesado: "#8b5cf6", compro: "#10b981", perdido: "#ef4444" };
+const STATUS_LABELS: Record<string, string> = { nuevo: "Nuevo", contactado: "Contactado", interesado: "Interesado", compro: "Compró", perdido: "Perdido" };
 
-const ESTADO_LABELS: Record<string, string> = {
-  nuevo: "Nuevo",
-  contactado: "Contactado",
-  interesado: "Interesado",
-  compro: "Compró",
-  perdido: "Perdido",
-};
-
-function MetricCard({
-  title,
-  value,
-  subtitle,
-  icon: Icon,
-  color,
-  loading,
-}: {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  icon: React.ElementType;
-  color: string;
-  loading?: boolean;
-}) {
-  return (
-    <div className="metric-card">
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{title}</p>
-          {loading ? (
-            <Skeleton className="h-8 w-20" />
-          ) : (
-            <p className="text-3xl font-display font-bold text-foreground">{value}</p>
-          )}
-          {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-        </div>
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center`} style={{ background: `${color}15` }}>
-          <Icon className="w-5 h-5" style={{ color }} />
-        </div>
-      </div>
-    </div>
-  );
+function MetricCard({ title, value, subtitle, icon: Icon, tone, loading }: { title: string; value: string | number; subtitle: string; icon: React.ElementType; tone: string; loading?: boolean }) {
+  return <Card className="border-border/80 transition hover:-translate-y-0.5 hover:shadow-md"><CardContent className="flex items-start justify-between gap-3 p-5"><div className="space-y-1"><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</p>{loading ? <Skeleton className="h-9 w-24" /> : <p className="font-display text-3xl font-bold tracking-tight">{value}</p>}<p className="text-xs text-muted-foreground">{subtitle}</p></div><div className="rounded-2xl p-3" style={{ background: `${tone}15`, color: tone }}><Icon className="h-5 w-5" /></div></CardContent></Card>;
 }
 
 export default function Dashboard() {
   const { data: analytics, isLoading } = trpc.analytics.summary.useQuery();
-  const { data: leads } = trpc.leads.list.useQuery();
+  const { data: leads = [] } = trpc.leads.list.useQuery();
+  const { data: products = [] } = trpc.productos.list.useQuery();
 
-  const recentLeads = leads?.slice(0, 5) ?? [];
+  const recentLeads = leads.slice(0, 5);
+  const statusData = (analytics?.porEstado ?? []).map((item: any) => ({ ...item, label: STATUS_LABELS[item.estado] ?? item.estado, color: STATUS_COLORS[item.estado] ?? "#6366f1" }));
+  const nicheData = useMemo(() => summarizeLeadsByNiche(leads, products).slice(0, 5), [leads, products]);
+  const attentionLeads = countAttentionLeads(leads);
+  const cartLeads = countAbandonedCartLeads(leads);
+  const maxNicheLeads = Math.max(...nicheData.map((item) => item.leads), 1);
 
-  const porEstadoData = (analytics?.porEstado ?? []).map((e: any) => ({
-    name: ESTADO_LABELS[e.estado] ?? e.estado,
-    value: e.count,
-    color: ESTADO_COLORS[e.estado] ?? "#6366f1",
-  }));
+  return <div className="space-y-7 p-5 md:p-8">
+    <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary"><Sparkles className="h-3.5 w-3.5" /> Centro de decisiones</div><h1 className="font-display text-3xl font-bold tracking-tight">Tu motor de ventas</h1><p className="mt-1 max-w-2xl text-sm text-muted-foreground">Una vista clara para decidir qué nicho impulsar, a qué leads contactar y qué oferta optimizar hoy.</p></div><div className="flex gap-2"><Button asChild variant="outline" className="min-h-11 gap-2"><a href="/productos"><Megaphone className="h-4 w-4" /> Gestionar catálogo</a></Button><Button asChild className="min-h-11 gap-2"><a href="/leads"><Users className="h-4 w-4" /> Ver leads</a></Button></div></header>
 
-  const ventasData = (analytics?.ventasPorProducto ?? [])
-    .filter((v: any) => v.ventas > 0)
-    .slice(0, 6);
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><MetricCard title="Leads totales" value={analytics?.totalLeads ?? 0} subtitle="Prospectos registrados" icon={Users} tone="#6366f1" loading={isLoading} /><MetricCard title="Conversión" value={`${analytics?.tasaConversion ?? 0}%`} subtitle="Leads que compraron" icon={TrendingUp} tone="#10b981" loading={isLoading} /><MetricCard title="Ventas" value={analytics?.conversiones ?? 0} subtitle="Compras confirmadas" icon={ShoppingCart} tone="#f59e0b" loading={isLoading} /><MetricCard title="Comisiones" value={`$${Number(analytics?.totalComisiones ?? 0).toFixed(0)}`} subtitle="Estimación del catálogo" icon={DollarSign} tone="#8b5cf6" loading={isLoading} /></div>
 
-  return (
-    <div className="p-8 space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-display font-bold text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Resumen de tu actividad como afiliado Hotmart
-        </p>
-      </div>
+    <section className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr]" aria-label="Acciones prioritarias"><Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/10 via-background to-emerald-500/5"><CardContent className="p-5 md:p-6"><div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between"><div className="max-w-xl"><Badge variant="secondary" className="mb-3 gap-1.5"><Zap className="h-3 w-3" /> Prioridad comercial</Badge><h2 className="text-xl font-bold">Convierte la atención en siguiente paso</h2><p className="mt-1 text-sm leading-relaxed text-muted-foreground">Tienes <strong className="text-foreground">{attentionLeads}</strong> leads en etapas que requieren seguimiento y <strong className="text-foreground">{cartLeads}</strong> registros relacionados con carrito abandonado.</p></div><div className="flex shrink-0 flex-col gap-2 sm:flex-row"><Button asChild className="min-h-11 gap-2"><a href="/leads?estado=interesado">Contactar interesados <ArrowRight className="h-4 w-4" /></a></Button><Button asChild variant="outline" className="min-h-11 gap-2"><a href="/configuracion?tab=recordatorios">Revisar reglas</a></Button></div></div></CardContent></Card><Card className="border-border/80"><CardHeader className="pb-2"><CardTitle className="text-sm">Atajos de crecimiento</CardTitle></CardHeader><CardContent className="grid gap-2 pt-2"><a href="/publicador" className="flex min-h-11 items-center justify-between rounded-lg border border-border px-3 text-sm transition hover:border-primary/40 hover:bg-primary/5"><span className="flex items-center gap-2"><Megaphone className="h-4 w-4 text-primary" /> Publicar contenido</span><ArrowUpRight className="h-4 w-4 text-muted-foreground" /></a><a href="/configuracion?tab=bienvenida" className="flex min-h-11 items-center justify-between rounded-lg border border-border px-3 text-sm transition hover:border-primary/40 hover:bg-primary/5"><span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Ajustar bienvenida</span><ArrowUpRight className="h-4 w-4 text-muted-foreground" /></a></CardContent></Card></section>
 
-      {/* Métricas principales */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          title="Total Leads"
-          value={analytics?.totalLeads ?? 0}
-          subtitle="Prospectos registrados"
-          icon={Users}
-          color="#6366f1"
-          loading={isLoading}
-        />
-        <MetricCard
-          title="Tasa de Conversión"
-          value={`${analytics?.tasaConversion ?? 0}%`}
-          subtitle="Leads que compraron"
-          icon={TrendingUp}
-          color="#10b981"
-          loading={isLoading}
-        />
-        <MetricCard
-          title="Ventas Generadas"
-          value={analytics?.conversiones ?? 0}
-          subtitle="Compras confirmadas"
-          icon={ShoppingCart}
-          color="#f59e0b"
-          loading={isLoading}
-        />
-        <MetricCard
-          title="Comisiones Est."
-          value={`$${(analytics?.totalComisiones ?? 0).toFixed(0)}`}
-          subtitle="40% del precio de venta"
-          icon={DollarSign}
-          color="#8b5cf6"
-          loading={isLoading}
-        />
-      </div>
+    <div className="grid gap-5 lg:grid-cols-2"><Card className="border-border/80"><CardHeader className="pb-2"><CardTitle className="text-sm">Embudo por etapa</CardTitle><p className="text-xs text-muted-foreground">La concentración de leads define dónde debe actuar tu siguiente campaña.</p></CardHeader><CardContent className="space-y-3">{isLoading ? Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} className="h-8 w-full" />) : statusData.length === 0 ? <div className="py-12 text-center text-sm text-muted-foreground">Aún no hay datos del embudo.</div> : statusData.map((item: any) => <div key={item.estado} className="space-y-1"><div className="flex items-center justify-between text-xs"><span className="flex items-center gap-2 font-medium"><span className="h-2.5 w-2.5 rounded-full" style={{ background: item.color }} />{item.label}</span><span className="text-muted-foreground">{item.value ?? item.count}</span></div><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full transition-all duration-500" style={{ width: `${analytics?.totalLeads ? Math.round(((item.value ?? item.count) / analytics.totalLeads) * 100) : 0}%`, background: item.color }} /></div></div>)}</CardContent></Card><Card className="border-border/80"><CardHeader className="pb-2"><CardTitle className="text-sm">Rendimiento por nicho</CardTitle><p className="text-xs text-muted-foreground">Compara demanda y ventas para decidir qué categoría escalar.</p></CardHeader><CardContent className="space-y-4">{nicheData.length === 0 ? <div className="py-12 text-center text-sm text-muted-foreground">Asocia leads a productos para ver nichos.</div> : nicheData.map((item) => <div key={item.name} className="space-y-1.5"><div className="flex items-center justify-between text-xs"><span className="font-medium">{item.name}</span><span className="text-muted-foreground">{item.sales} ventas / {item.leads} leads</span></div><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-gradient-to-r from-primary to-violet-500" style={{ width: `${Math.round((item.leads / maxNicheLeads) * 100)}%` }} /></div></div>)}</CardContent></Card></div>
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Embudo por estado */}
-        <Card className="lg:col-span-1">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-foreground">Leads por Etapa</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-2">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Skeleton key={i} className="h-8 w-full" />
-                ))}
-              </div>
-            ) : porEstadoData.length === 0 ? (
-              <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">
-                Sin datos aún
-              </div>
-            ) : (
-              <div className="space-y-2 mt-2">
-                {porEstadoData.map((item: any) => (
-                  <div key={item.name} className="flex items-center gap-3">
-                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: item.color }} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-xs font-medium text-foreground">{item.name}</span>
-                        <span className="text-xs text-muted-foreground">{item.value}</span>
-                      </div>
-                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${analytics?.totalLeads ? Math.round((item.value / analytics.totalLeads) * 100) : 0}%`,
-                            background: item.color,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Ventas por producto */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-foreground">Ventas por Producto</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-48 w-full" />
-            ) : ventasData.length === 0 ? (
-              <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">
-                Sin ventas registradas aún
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={ventasData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.88 0.01 240)" />
-                  <XAxis dataKey="nombre" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                  <Tooltip
-                    contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid oklch(0.88 0.01 240)" }}
-                    cursor={{ fill: "oklch(0.95 0.008 240)" }}
-                  />
-                  <Bar dataKey="ventas" fill="oklch(0.38 0.14 270)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Leads recientes */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold text-foreground">Leads Recientes</CardTitle>
-            <a href="/leads" className="text-xs text-primary hover:underline flex items-center gap-1">
-              Ver todos <ArrowUpRight className="w-3 h-3" />
-            </a>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {recentLeads.length === 0 ? (
-            <div className="px-6 py-8 text-center text-muted-foreground text-sm">
-              No hay leads registrados aún. <a href="/leads" className="text-primary hover:underline">Agregar el primero</a>
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {recentLeads.map((lead: any) => (
-                <a
-                  key={lead.id}
-                  href={`/leads/${lead.id}`}
-                  className="flex items-center gap-4 px-6 py-3.5 hover:bg-muted/40 transition-colors"
-                >
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <span className="text-xs font-semibold text-primary">
-                      {lead.nombre.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{lead.nombre}</p>
-                    <p className="text-xs text-muted-foreground truncate">{lead.email || lead.telefono || "Sin contacto"}</p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={`text-xs shrink-0 estado-${lead.estado}`}
-                  >
-                    {ESTADO_LABELS[lead.estado] ?? lead.estado}
-                  </Badge>
-                </a>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
+    <Card className="border-border/80"><CardHeader className="pb-3"><div className="flex items-center justify-between"><div><CardTitle className="text-sm">Leads recientes</CardTitle><p className="mt-1 text-xs text-muted-foreground">La prioridad es responder antes de que se enfríe el interés.</p></div><a href="/leads" className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">Ver todos <ArrowUpRight className="h-3 w-3" /></a></div></CardHeader><CardContent className="p-0">{recentLeads.length === 0 ? <div className="px-6 py-10 text-center text-sm text-muted-foreground">No hay leads registrados aún. <a href="/leads" className="font-medium text-primary hover:underline">Agregar el primero</a></div> : <div className="divide-y divide-border">{recentLeads.map((lead: any) => <a key={lead.id} href={`/leads/${lead.id}`} className="flex min-h-16 items-center gap-4 px-5 transition hover:bg-muted/40 md:px-6"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10"><span className="text-xs font-semibold text-primary">{lead.nombre.charAt(0).toUpperCase()}</span></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{lead.nombre}</p><p className="truncate text-xs text-muted-foreground">{lead.email || lead.telefono || "Sin contacto"}</p></div><Badge variant="outline" className={`shrink-0 text-xs estado-${lead.estado}`}>{STATUS_LABELS[lead.estado] ?? lead.estado}</Badge><ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" /></a>)}</div>}</CardContent></Card>
+  </div>;
 }

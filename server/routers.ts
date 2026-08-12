@@ -46,6 +46,14 @@ async function sendWhatsAppCloudMessage(params: { token: string; phoneNumberId: 
   });
 }
 
+function renderLeadTemplate(content: string, lead: { nombre?: string | null }, product?: { nombre?: string | null; enlaceAfiliado?: string | null; categoria?: string | null }) {
+  return content
+    .replaceAll("{{nombre}}", lead.nombre ?? "amigo")
+    .replaceAll("{{producto}}", product?.nombre ?? "tu ebook")
+    .replaceAll("{{enlace}}", product?.enlaceAfiliado ?? "")
+    .replaceAll("{{categoria}}", product?.categoria ?? "");
+}
+
 async function publishInstagramContent(params: { token: string; accountId: string; contenido: string; imagenes: string[]; videos: string[]; hashtags: string[] }) {
   const caption = withHashtags(params.contenido, params.hashtags);
   const media = params.videos[0]
@@ -112,6 +120,7 @@ const leadsRouter = router({
       estado: z.string().optional(),
       fuente: z.string().optional(),
       campana: z.string().optional(),
+      campanaId: z.number().optional(),
       productoInteresId: z.number().optional(),
     }).optional())
     .query(({ input }) => db.getLeads(input)),
@@ -129,9 +138,11 @@ const leadsRouter = router({
       nombre: z.string().min(1),
       email: z.string().email().optional().or(z.literal("")),
       telefono: z.string().optional(),
+      whatsappOptIn: z.boolean().default(false),
       estado: z.enum(["nuevo", "contactado", "interesado", "compro", "perdido"]).default("nuevo"),
       fuente: z.string().optional(),
       campana: z.string().optional(),
+      campanaId: z.number().optional(),
       productoInteresId: z.number().optional(),
       etiquetasIds: z.array(z.number()).optional(),
       notas: z.string().optional(),
@@ -144,7 +155,7 @@ const leadsRouter = router({
       });
 
       const leadId = Number((result as any).insertId ?? 0);
-      if (leadId && input.productoInteresId && input.telefono) {
+      if (leadId && input.productoInteresId && input.telefono && input.whatsappOptIn) {
         const welcome = await db.getActiveWelcomeMessage(input.productoInteresId);
         const credentials = await db.getApiCredentials("whatsapp");
         const credential = credentials[0];
@@ -194,6 +205,7 @@ const leadsRouter = router({
       estado: z.enum(["nuevo", "contactado", "interesado", "compro", "perdido"]).optional(),
       fuente: z.string().optional(),
       campana: z.string().optional(),
+      campanaId: z.number().optional().nullable(),
       productoInteresId: z.number().optional().nullable(),
       etiquetasIds: z.array(z.number()).optional(),
       notas: z.string().optional(),
@@ -533,24 +545,41 @@ const reglasRouter = router({
 
       const plantilla = await db.getPlantillaById(regla.plantillaId);
       if (!plantilla) throw new TRPCError({ code: "NOT_FOUND", message: "Plantilla no encontrada" });
+      const credential = (await db.getApiCredentials("whatsapp"))[0];
+      if (!credential?.activo || !credential.tokenAcceso || !credential.idCuenta) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Activa las credenciales de WhatsApp antes de ejecutar recordatorios" });
+      }
 
       const estados = (regla.estadosAplicables as string[]) ?? ["nuevo", "contactado", "interesado"];
       const leadsInactivos = await db.getLeadsInactivos(regla.diasInactividad, estados);
-      const leadsAplicables = leadsInactivos.filter(l => estados.includes(l.estado));
-
+      const leadsAplicables = leadsInactivos.filter((lead) => estados.includes(lead.estado));
       let procesados = 0;
+      let errores = 0;
+      let omitidosSinTelefono = 0;
+
       for (const lead of leadsAplicables) {
-        await db.createInteraccion({
-          leadId: lead.id,
-          tipo: "mensaje_enviado",
-          contenido: `[Recordatorio automático] ${plantilla.contenido}`,
-          estadoMensaje: "pendiente",
-          plantillaId: plantilla.id,
-        });
-        await db.updateLead(lead.id, { ultimaInteraccion: new Date() });
-        procesados++;
+        if (!lead.telefono || !lead.whatsappOptIn) {
+          omitidosSinTelefono++;
+          continue;
+        }
+        const product = lead.productoInteresId ? await db.getProductoById(lead.productoInteresId) : undefined;
+        const content = renderLeadTemplate(plantilla.contenido, lead, product);
+        const pending = await db.createMensajeWhatsapp({ leadId: lead.id, contenido: content, estado: "pendiente" });
+        const messageId = Number((pending as any).insertId ?? 0);
+        try {
+          const response = await sendWhatsAppCloudMessage({ token: credential.tokenAcceso, phoneNumberId: credential.idCuenta, to: lead.telefono, body: content });
+          await db.updateMensajeWhatsapp(messageId, { estado: "enviado", idMensajeWhatsapp: response.messages?.[0]?.id, enviadoEn: new Date() });
+          await db.createInteraccion({ leadId: lead.id, tipo: "mensaje_enviado", contenido: content, estadoMensaje: "enviado", plantillaId: plantilla.id });
+          await db.updateLead(lead.id, { ultimaInteraccion: new Date() });
+          procesados++;
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Error desconocido de WhatsApp";
+          await db.updateMensajeWhatsapp(messageId, { estado: "error", error: errorMessage });
+          await db.createInteraccion({ leadId: lead.id, tipo: "mensaje_enviado", contenido: content, estadoMensaje: "fallido", plantillaId: plantilla.id, metadatos: { error: errorMessage } });
+          errores++;
+        }
       }
-      return { procesados };
+      return { procesados, errores, omitidosSinTelefono };
     }),
 });
 
@@ -798,6 +827,66 @@ const welcomeMessagesRouter = router({
     }),
 });
 
+// ─── Campañas y atribución Router ──────────────────────────────────────────────
+const campanasRouter = router({
+  list: protectedProcedure.query(async () => {
+    const [campanas, leads] = await Promise.all([db.getCampanas(), db.getLeads()]);
+    return campanas.map(campana => ({
+      ...campana,
+      leadsCount: leads.filter((lead: { campanaId: number | null; campana: string | null }) => lead.campanaId === campana.id || lead.campana === campana.nombre).length,
+      hotmartUtm: [campana.utmSource, campana.utmMedium, campana.utmCampaign]
+        .filter(Boolean)
+        .join(" / "),
+    }));
+  }),
+
+  byId: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      const campana = await db.getCampanaById(input.id);
+      if (!campana) throw new TRPCError({ code: "NOT_FOUND", message: "Campaña no encontrada" });
+      return campana;
+    }),
+
+  create: protectedProcedure
+    .input(z.object({
+      nombre: z.string().min(2),
+      descripcion: z.string().optional(),
+      fuente: z.string().min(2),
+      utmSource: z.string().optional(),
+      utmMedium: z.string().optional(),
+      utmCampaign: z.string().optional(),
+      productoId: z.number().nullable().optional(),
+      activo: z.boolean().default(true),
+    }))
+    .mutation(({ input }) => db.createCampana(input)),
+
+  update: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      nombre: z.string().min(2).optional(),
+      descripcion: z.string().optional(),
+      fuente: z.string().min(2).optional(),
+      utmSource: z.string().optional(),
+      utmMedium: z.string().optional(),
+      utmCampaign: z.string().optional(),
+      productoId: z.number().nullable().optional(),
+      activo: z.boolean().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      await db.updateCampana(id, data);
+      return { success: true };
+    }),
+
+  delete: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      await db.deleteCampana(input.id);
+      return { success: true };
+    }),
+});
+
 // ─── App Router ───────────────────────────────────────────────────────────────
 export const appRouter = router({
   system: systemRouter,
@@ -811,6 +900,7 @@ export const appRouter = router({
   }),
   leads: leadsRouter,
   productos: productosRouter,
+  campanas: campanasRouter,
   plantillas: plantillasRouter,
   flujos: flujosRouter,
   interacciones: interaccionesRouter,

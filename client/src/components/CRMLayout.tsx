@@ -9,6 +9,7 @@ import {
   Layers,
   LayoutDashboard,
   LogOut,
+  Megaphone,
   MessageSquare,
   Package,
   Share2,
@@ -22,14 +23,30 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc";
 
-const navItems = [
-  { href: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/leads", icon: Users, label: "Leads" },
-  { href: "/productos", icon: Package, label: "Productos" },
-  { href: "/flujos", icon: Zap, label: "Automatizaciones" },
-  { href: "/plantillas", icon: MessageSquare, label: "Plantillas" },
-  { href: "/publicador", icon: Share2, label: "Publicador" },
-  { href: "/analiticas", icon: BarChart3, label: "Analíticas" },
+const navGroups = [
+  {
+    label: "Decidir",
+    items: [
+      { href: "/", icon: LayoutDashboard, label: "Dashboard" },
+      { href: "/analiticas", icon: BarChart3, label: "Analíticas" },
+    ],
+  },
+  {
+    label: "Convertir",
+    items: [
+      { href: "/productos", icon: Package, label: "Catálogo & Nichos" },
+      { href: "/campanas", icon: Megaphone, label: "Campañas & UTMs" },
+      { href: "/leads", icon: Users, label: "Leads & Embudo" },
+    ],
+  },
+  {
+    label: "Automatizar",
+    items: [
+      { href: "/flujos", icon: Zap, label: "Automatizaciones" },
+      { href: "/plantillas", icon: MessageSquare, label: "Plantillas & IA" },
+      { href: "/publicador", icon: Share2, label: "Publicador" },
+    ],
+  },
 ];
 
 const bottomItems = [
@@ -40,21 +57,26 @@ function SidebarNav() {
   const [location, navigate] = useLocation();
 
   return (
-    <nav className="flex-1 px-3 py-2 space-y-0.5">
-      {navItems.map(({ href, icon: Icon, label }) => {
-        const isActive = location === href || (href !== "/" && location.startsWith(href));
-        return (
-          <button
-            key={href}
-            onClick={() => navigate(href)}
-            className={cn("sidebar-item w-full", isActive && "active")}
-          >
-            <Icon className="icon" />
-            <span className="flex-1 text-left">{label}</span>
-            {isActive && <ChevronRight className="w-3 h-3 opacity-50" />}
-          </button>
-        );
-      })}
+    <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
+      {navGroups.map((group) => (
+        <div key={group.label} className="space-y-1">
+          <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: "oklch(0.50 0.03 255)" }}>{group.label}</p>
+          {group.items.map(({ href, icon: Icon, label }) => {
+            const isActive = location === href || (href !== "/" && location.startsWith(href));
+            return (
+              <button
+                key={href}
+                onClick={() => navigate(href)}
+                className={cn("sidebar-item min-h-11 w-full", isActive && "active")}
+              >
+                <Icon className="icon" />
+                <span className="flex-1 text-left">{label}</span>
+                {isActive && <ChevronRight className="h-3 w-3 opacity-50" />}
+              </button>
+            );
+          })}
+        </div>
+      ))}
     </nav>
   );
 }

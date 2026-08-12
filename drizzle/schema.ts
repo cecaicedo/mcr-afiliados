@@ -53,17 +53,37 @@ export const productos = mysqlTable("productos", {
 export type Producto = typeof productos.$inferSelect;
 export type InsertProducto = typeof productos.$inferInsert;
 
+// ─── Campañas y atribución ─────────────────────────────────────────────────────
+export const campanas = mysqlTable("campanas", {
+  id: int("id").autoincrement().primaryKey(),
+  nombre: varchar("nombre", { length: 200 }).notNull(),
+  descripcion: text("descripcion"),
+  fuente: varchar("fuente", { length: 100 }).notNull(),
+  utmSource: varchar("utmSource", { length: 100 }),
+  utmMedium: varchar("utmMedium", { length: 100 }),
+  utmCampaign: varchar("utmCampaign", { length: 150 }),
+  productoId: int("productoId"),
+  activo: boolean("activo").notNull().default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Campana = typeof campanas.$inferSelect;
+export type InsertCampana = typeof campanas.$inferInsert;
+
 // ─── Leads / Prospectos ───────────────────────────────────────────────────────
 export const leads = mysqlTable("leads", {
   id: int("id").autoincrement().primaryKey(),
   nombre: varchar("nombre", { length: 200 }).notNull(),
   email: varchar("email", { length: 320 }),
   telefono: varchar("telefono", { length: 30 }),
+  whatsappOptIn: boolean("whatsappOptIn").notNull().default(false),
   estado: mysqlEnum("estado", ["nuevo", "contactado", "interesado", "compro", "perdido"])
     .notNull()
     .default("nuevo"),
   fuente: varchar("fuente", { length: 100 }),
   campana: varchar("campana", { length: 100 }),
+  campanaId: int("campanaId"),
   productoInteresId: int("productoInteresId"),
   etiquetasIds: json("etiquetasIds").$type<number[]>().default([]),
   notas: text("notas"),

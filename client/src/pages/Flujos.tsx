@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Zap, Settings2, Trash2, ChevronRight, Play } from "lucide-react";
+import { Plus, Zap, Settings2, Trash2, ChevronRight, Play, ShoppingCart, HeartHandshake, UserPlus } from "lucide-react";
 
 const TRIGGER_LABELS: Record<string, string> = {
   nuevo_lead: "Nuevo Lead",
@@ -33,9 +33,13 @@ const TRIGGER_COLORS: Record<string, string> = {
 
 export default function Flujos() {
   const [, navigate] = useLocation();
+  const [filterTrigger, setFilterTrigger] = useState("all");
   const utils = trpc.useUtils();
 
   const { data: flujos = [], isLoading } = trpc.flujos.list.useQuery();
+  const visibleFlujos = useMemo(() => filterTrigger === "all" ? flujos : flujos.filter((flujo: any) => flujo.trigger === filterTrigger), [flujos, filterTrigger]);
+  const activeCount = flujos.filter((flujo: any) => flujo.activo).length;
+  const recoveryCount = flujos.filter((flujo: any) => flujo.trigger === "carrito_abandonado").length;
 
   const updateFlujo = trpc.flujos.update.useMutation({
     onSuccess: () => { utils.flujos.list.invalidate(); },
@@ -48,16 +52,13 @@ export default function Flujos() {
   });
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-display font-bold text-foreground">Automatizaciones</h1>
-          <p className="text-sm text-muted-foreground mt-1">Flujos de mensajes WhatsApp configurables</p>
-        </div>
-        <Button onClick={() => navigate("/flujos/nuevo")} className="gap-2">
-          <Plus className="w-4 h-4" /> Nuevo Flujo
-        </Button>
+    <div className="space-y-7 p-5 md:p-8">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary"><Zap className="h-3.5 w-3.5" /> Secuencias del embudo</div><h1 className="font-display text-3xl font-bold tracking-tight text-foreground">Automatizaciones</h1><p className="mt-1 max-w-2xl text-sm text-muted-foreground">Diseña la conversación correcta para cada momento: bienvenida, decisión, carrito abandonado y postventa.</p></div>
+        <Button onClick={() => navigate("/flujos/nuevo")} className="min-h-11 gap-2 px-5"><Plus className="h-4 w-4" /> Nuevo flujo</Button>
       </div>
+      <div className="grid gap-3 sm:grid-cols-3"><Card className="border-border/80"><CardContent className="flex items-center gap-3 p-4"><div className="rounded-xl bg-primary/10 p-2.5 text-primary"><Zap className="h-5 w-5" /></div><div><p className="text-2xl font-bold">{activeCount}</p><p className="text-xs text-muted-foreground">Flujos activos</p></div></CardContent></Card><Card className="border-border/80"><CardContent className="flex items-center gap-3 p-4"><div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-600"><UserPlus className="h-5 w-5" /></div><div><p className="text-2xl font-bold">{flujos.filter((flujo: any) => flujo.trigger === "nuevo_lead").length}</p><p className="text-xs text-muted-foreground">De bienvenida</p></div></CardContent></Card><Card className="border-border/80"><CardContent className="flex items-center gap-3 p-4"><div className="rounded-xl bg-orange-500/10 p-2.5 text-orange-600"><ShoppingCart className="h-5 w-5" /></div><div><p className="text-2xl font-bold">{recoveryCount}</p><p className="text-xs text-muted-foreground">De recuperación</p></div></CardContent></Card></div>
+      <div className="flex flex-wrap gap-2" aria-label="Filtrar automatizaciones">{[["all", "Todos"], ["nuevo_lead", "Bienvenida"], ["carrito_abandonado", "Carrito abandonado"], ["post_venta", "Postventa"]].map(([value, label]) => <Button key={value} type="button" size="sm" variant={filterTrigger === value ? "default" : "outline"} onClick={() => setFilterTrigger(value)} className="min-h-9 rounded-full px-4">{label}</Button>)}</div>
 
       {isLoading ? (
         <div className="space-y-3">
@@ -74,7 +75,7 @@ export default function Flujos() {
         </div>
       ) : (
         <div className="space-y-3">
-          {flujos.map((flujo: any) => (
+          {visibleFlujos.map((flujo: any) => (
             <Card key={flujo.id} className={`transition-all duration-200 hover:shadow-sm ${!flujo.activo ? "opacity-60" : ""}`}>
               <CardContent className="p-5">
                 <div className="flex items-center gap-4">
@@ -124,6 +125,7 @@ export default function Flujos() {
               </CardContent>
             </Card>
           ))}
+          {visibleFlujos.length === 0 && <Card className="border-dashed"><CardContent className="py-14 text-center"><HeartHandshake className="mx-auto mb-3 h-9 w-9 text-muted-foreground/40" /><p className="font-medium">No hay flujos en este momento</p><p className="mt-1 text-sm text-muted-foreground">Crea una secuencia para conectar esta etapa con el siguiente paso comercial.</p><Button className="mt-4 min-h-10" onClick={() => navigate("/flujos/nuevo")}>Crear flujo</Button></CardContent></Card>}
         </div>
       )}
     </div>

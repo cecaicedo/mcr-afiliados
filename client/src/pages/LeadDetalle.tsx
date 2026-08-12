@@ -26,6 +26,8 @@ import {
   StickyNote,
   Webhook,
   RefreshCw,
+  Sparkles,
+  ExternalLink,
 } from "lucide-react";
 import { WhatsAppSender } from "@/components/WhatsAppSender";
 import { WhatsAppHistory } from "@/components/WhatsAppHistory";
@@ -104,7 +106,9 @@ export default function LeadDetalle() {
     );
   }
 
-  const productoNombre = productos.find((p: any) => p.id === lead.productoInteresId)?.nombre;
+  const productoActual = productos.find((p: any) => p.id === lead.productoInteresId);
+  const productoNombre = productoActual?.nombre;
+  const recomendaciones = productos.filter((product: any) => product.id !== lead.productoInteresId && product.activo && (!productoActual?.categoria || product.categoria === productoActual.categoria)).slice(0, 3);
 
   return (
     <div className="p-8 space-y-6">
@@ -176,6 +180,8 @@ export default function LeadDetalle() {
               )}
             </CardContent>
           </Card>
+
+          {recomendaciones.length > 0 && <Card className="border-primary/20 bg-primary/[0.03]"><CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="h-4 w-4 text-primary" /> Recomendaciones del mismo nicho</CardTitle><p className="text-xs text-muted-foreground">Úsalas solo cuando el lead haya mostrado interés o después de su primera compra.</p></CardHeader><CardContent className="space-y-2">{recomendaciones.map((product: any) => <div key={product.id} className="rounded-lg border border-border/70 bg-background p-3"><p className="line-clamp-1 text-xs font-semibold">{product.nombre}</p><p className="mt-1 text-[11px] text-muted-foreground">{product.categoria || "Oferta complementaria"}</p><Button asChild size="sm" variant="outline" className="mt-2 min-h-9 w-full gap-1.5 text-xs"><a href={product.enlaceAfiliado} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3 w-3" /> Abrir HotLink</a></Button></div>)}</CardContent></Card>}
 
           {/* Cambiar estado */}
           <Card>

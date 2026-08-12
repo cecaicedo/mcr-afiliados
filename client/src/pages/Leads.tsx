@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -22,7 +22,8 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, Filter, User, Mail, Phone, Tag, Trash2, Eye } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Plus, Search, Filter, User, Mail, Phone, Tag, Trash2, Eye, SlidersHorizontal } from "lucide-react";
 
 const ESTADOS = ["nuevo", "contactado", "interesado", "compro", "perdido"] as const;
 const ESTADO_LABELS: Record<string, string> = {
@@ -49,7 +50,7 @@ function LeadForm({
   });
 
   const [form, setForm] = useState({
-    nombre: "", email: "", telefono: "", estado: "nuevo" as const,
+    nombre: "", email: "", telefono: "", whatsappOptIn: false, estado: "nuevo" as const,
     fuente: "", campana: "", productoInteresId: undefined as number | undefined, notas: "",
   });
 
@@ -77,6 +78,10 @@ function LeadForm({
             <div className="space-y-1.5">
               <Label>Teléfono / WhatsApp</Label>
               <Input value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} placeholder="+57 300 000 0000" />
+            </div>
+            <div className="col-span-2 flex items-center justify-between rounded-lg border border-border bg-muted/20 p-3">
+              <div><Label>Consentimiento de WhatsApp</Label><p className="text-[11px] text-muted-foreground">Actívalo solo si el lead aceptó recibir mensajes de tu negocio.</p></div>
+              <Switch checked={form.whatsappOptIn} onCheckedChange={(value) => setForm((current) => ({ ...current, whatsappOptIn: value }))} />
             </div>
             <div className="space-y-1.5">
               <Label>Estado</Label>
@@ -135,6 +140,10 @@ export default function Leads() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<string>("all");
+  const [filterProducto, setFilterProducto] = useState<string>("all");
+  const [filterFuente, setFilterFuente] = useState("");
+  const [filterCampana, setFilterCampana] = useState("");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
   const { data: leads = [], isLoading } = trpc.leads.list.useQuery(
@@ -149,13 +158,17 @@ export default function Leads() {
     onError: (e) => toast.error(e.message),
   });
 
-  const filtered = leads.filter((l: any) =>
-    l.nombre.toLowerCase().includes(search.toLowerCase()) ||
-    (l.email && l.email.toLowerCase().includes(search.toLowerCase())) ||
-    (l.telefono && l.telefono.includes(search))
-  );
+  const filtered = leads.filter((l: any) => {
+    const normalizedSearch = search.toLowerCase();
+    const matchesSearch = l.nombre.toLowerCase().includes(normalizedSearch) || (l.email && l.email.toLowerCase().includes(normalizedSearch)) || (l.telefono && l.telefono.includes(search));
+    const matchesProduct = filterProducto === "all" || String(l.productoInteresId ?? "") === filterProducto;
+    const matchesSource = !filterFuente || String(l.fuente ?? "").toLowerCase().includes(filterFuente.toLowerCase());
+    const matchesCampaign = !filterCampana || String(l.campana ?? "").toLowerCase().includes(filterCampana.toLowerCase());
+    return matchesSearch && matchesProduct && matchesSource && matchesCampaign;
+  });
 
   const productoNombre = (id?: number | null) => productos.find((p: any) => p.id === id)?.nombre;
+  const filterSummary = useMemo(() => [filterProducto !== "all", Boolean(filterFuente), Boolean(filterCampana)].filter(Boolean).length, [filterProducto, filterFuente, filterCampana]);
 
   return (
     <div className="p-8 space-y-6">
@@ -203,7 +216,15 @@ export default function Leads() {
               </Button>
             ))}
           </div>
+          <Button type="button" variant={showAdvancedFilters ? "secondary" : "outline"} size="sm" onClick={() => setShowAdvancedFilters((value) => !value)} className="min-h-9 gap-1.5 text-xs">
+            <SlidersHorizontal className="h-3.5 w-3.5" /> Segmentación {filterSummary > 0 && <Badge variant="default" className="ml-1 h-5 min-w-5 justify-center px-1 text-[10px]">{filterSummary}</Badge>}
+          </Button>
         </div>
+        {showAdvancedFilters && <div className="grid gap-3 rounded-xl border border-border bg-muted/20 p-3 md:grid-cols-3">
+          <div className="space-y-1.5"><Label className="text-xs">Producto de interés</Label><Select value={filterProducto} onValueChange={setFilterProducto}><SelectTrigger className="min-h-10 bg-background"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos los productos</SelectItem>{productos.map((product: any) => <SelectItem key={product.id} value={String(product.id)}>{product.nombre}</SelectItem>)}</SelectContent></Select></div>
+          <div className="space-y-1.5"><Label className="text-xs">Fuente de tráfico</Label><Input value={filterFuente} onChange={(event) => setFilterFuente(event.target.value)} placeholder="Instagram, TikTok, Google..." className="min-h-10 bg-background" /></div>
+          <div className="space-y-1.5"><Label className="text-xs">Campaña</Label><Input value={filterCampana} onChange={(event) => setFilterCampana(event.target.value)} placeholder="Nombre o código UTM" className="min-h-10 bg-background" /></div>
+        </div>}
       </div>
 
       {/* Tabla */}

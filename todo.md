@@ -82,3 +82,25 @@
 - [x] Implementar publicación real en TikTok con manejo de API y errores
 - [x] Añadir pruebas exitosas de las integraciones multicanal
 - [x] Ejecutar pruebas, comprobación de servidor y guardar checkpoint final
+
+## Rediseño UX/UI para plan comercial integrado
+- [x] Aplicar sistema visual basado en Fitts, Gestalt y Hick en navegación y CTAs
+- [x] Reorganizar navegación por Catálogo & Nichos, Leads & Embudo, Automatizaciones, Contenido y Analíticas
+- [x] Añadir agrupación y filtros de catálogo por nicho para 30+ ebooks
+- [x] Añadir ficha comercial de producto con HotLink, fuente, campaña y CTA principal
+- [x] Añadir panel de campañas y captación con UTMs y origen de lead
+- [x] Conectar mensajes de bienvenida, secuencias y recuperación de carritos a los segmentos
+- [x] Añadir recomendaciones de venta cruzada por producto y categoría
+- [x] Mejorar dashboard y analíticas con rendimiento por ebook, nicho, fuente y campaña
+- [x] Añadir estados de feedback, accesibilidad y responsive en los módulos rediseñados
+- [x] Escribir y ejecutar pruebas del rediseño comercial antes del checkpoint
+- [x] Incorporar consentimiento explícito de WhatsApp en el perfil del lead antes de automatizar mensajes
+- [x] Convertir recordatorios automáticos en envíos reales con variables y registro de resultado
+
+## Correcciones de cierre UX/comercial
+- [x] Definir y documentar el alcance correcto de fuente/campaña: producto vs lead/campaña
+- [x] Crear panel específico de campañas y captación con UTMs y asociación verificable a leads
+- [x] Implementar segmentación persistente por nicho, campaña, fuente o etiquetas y conectarla a flujos
+- [x] Completar revisión de accesibilidad, responsive y estados loading/error/empty de los módulos rediseñados
+- [x] Asegurar descubrimiento y ejecución explícita de las pruebas nuevas de utilidades comerciales
+- [x] Adaptar el handler programado /api/scheduled/recordatorios al envío real con consentimiento, variables y resultado

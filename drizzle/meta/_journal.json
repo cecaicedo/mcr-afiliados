@@ -29,6 +29,20 @@
       "when": 1786495250348,
       "tag": "0003_happy_ultimo",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1786497387212,
+      "tag": "0004_mature_miek",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1786497706032,
+      "tag": "0005_abandoned_moonstone",
+      "breakpoints": true
     }
   ]
 }
