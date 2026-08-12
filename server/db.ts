@@ -30,6 +30,8 @@ import {
   campanas,
   Campana,
   InsertCampana,
+  embudos,
+  InsertEmbudo,
   mensajesWhatsapp,
   InsertMensajeWhatsapp,
   publicacionesRedes,
@@ -338,6 +340,38 @@ export async function deleteEtiqueta(id: number) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   return db.delete(etiquetas).where(eq(etiquetas.id, id));
+}
+
+// ─── Embudos ──────────────────────────────────────────────────────────────────
+export async function getEmbudos() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(embudos).orderBy(desc(embudos.createdAt));
+}
+
+export async function getEmbudoBySlug(slug: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const res = await db.select().from(embudos).where(eq(embudos.slug, slug)).limit(1);
+  return res[0];
+}
+
+export async function createEmbudo(data: InsertEmbudo) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.insert(embudos).values(data);
+}
+
+export async function updateEmbudo(id: number, data: Partial<InsertEmbudo>) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.update(embudos).set({ ...data, updatedAt: new Date() }).where(eq(embudos.id, id));
+}
+
+export async function deleteEmbudo(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  return db.delete(embudos).where(eq(embudos.id, id));
 }
 
 // ─── Webhooks Hotmart ─────────────────────────────────────────────────────────

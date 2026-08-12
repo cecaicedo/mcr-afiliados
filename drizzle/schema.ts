@@ -291,3 +291,25 @@ export const mensajesBienvenida = mysqlTable("mensajes_bienvenida", {
 
 export type MensajeBienvenida = typeof mensajesBienvenida.$inferSelect;
 export type InsertMensajeBienvenida = typeof mensajesBienvenida.$inferInsert;
+
+// ─── Embudos de Venta (Landing Pages, WhatsApp & Venta) ───────────────────────
+export const embudos = mysqlTable("embudos", {
+  id: int("id").autoincrement().primaryKey(),
+  nombre: varchar("nombre", { length: 200 }).notNull(),
+  slug: varchar("slug", { length: 150 }).notNull().unique(),
+  productoId: int("productoId").notNull(),
+  tipo: mysqlEnum("tipo", ["registro", "whatsapp", "venta"]).notNull().default("registro"),
+  tituloHero: varchar("tituloHero", { length: 300 }).notNull(),
+  subtituloHero: text("subtituloHero"),
+  imagenHeroUrl: text("imagenHeroUrl"),
+  ctaTexto: varchar("ctaTexto", { length: 100 }).notNull().default("Obtener Acceso Inmediato"),
+  colorTema: varchar("colorTema", { length: 50 }).notNull().default("emerald"),
+  activo: boolean("activo").notNull().default(true),
+  visitasCount: int("visitasCount").notNull().default(0),
+  conversionesCount: int("conversionesCount").notNull().default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Embudo = typeof embudos.$inferSelect;
+export type InsertEmbudo = typeof embudos.$inferInsert;

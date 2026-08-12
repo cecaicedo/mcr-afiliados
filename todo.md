@@ -111,3 +111,10 @@
 - [x] Rediseñar la página Productos.tsx con tarjetas verticales estilo galería (imagen superior, categoría, título, badge de puntuación, descripción corta, y precio destacado inferior)
 - [x] Soportar subida manual por parte del usuario o importación masiva automática de los 30+ ebooks distribuidos por nicho
 - [x] Verificar tests y guardar checkpoint final con la nueva UI de catálogo
+
+## Módulo de Embudos de Venta (Landing Pages, WhatsApp & Venta)
+- [x] Añadir tabla `embudos` en esquema de base de datos para páginas de registro, WhatsApp y venta
+- [x] Implementar helpers y router tRPC para gestión de embudos y conversión de visitantes
+- [x] Desarrollar página frontend `Embudos.tsx` con generador de landing pages por ebook
+- [x] Conectar formularios de registro con la creación automática de Leads y consentimiento WhatsApp
+- [x] Validar compilación, pruebas y guardar checkpoint final

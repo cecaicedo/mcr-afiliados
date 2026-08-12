@@ -15,6 +15,7 @@ import Plantillas from "@/pages/Plantillas";
 import PlantillasSociales from "@/pages/PlantillasSociales";
 import Analiticas from "@/pages/Analiticas";
 import Campanas from "@/pages/Campanas";
+import Embudos from "@/pages/Embudos";
 import Configuracion from "@/pages/Configuracion";
 import PublicadorRedes from "./pages/PublicadorRedes";
 
@@ -32,6 +33,7 @@ function Router() {
         <Route path="/plantillas-sociales" component={PlantillasSociales} />
         <Route path="/analiticas" component={Analiticas} />
         <Route path="/campanas" component={Campanas} />
+        <Route path="/embudos" component={Embudos} />
         <Route path="/configuracion" component={Configuracion} />
         <Route path="/publicador" component={PublicadorRedes} />
         <Route path="/404" component={NotFound} />

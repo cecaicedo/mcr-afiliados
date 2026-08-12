@@ -958,6 +958,48 @@ export const appRouter = router({
   reglas: reglasRouter,
   apis: apisRouter,
   welcomeMessages: welcomeMessagesRouter,
+  embudos: router({
+    list: protectedProcedure.query(() => db.getEmbudos()),
+    bySlug: publicProcedure
+      .input(z.object({ slug: z.string() }))
+      .query(async ({ input }) => {
+        const e = await db.getEmbudoBySlug(input.slug);
+        if (!e) throw new TRPCError({ code: "NOT_FOUND" });
+        return e;
+      }),
+    create: protectedProcedure
+      .input(z.object({
+        nombre: z.string().min(1),
+        slug: z.string().min(1),
+        productoId: z.number(),
+        tipo: z.enum(["registro", "whatsapp", "venta"]).default("registro"),
+        tituloHero: z.string().min(1),
+        subtituloHero: z.string().optional(),
+        imagenHeroUrl: z.string().optional(),
+        ctaTexto: z.string().default("Obtener Acceso Inmediato"),
+        colorTema: z.string().default("emerald"),
+        activo: z.boolean().default(true),
+      }))
+      .mutation(({ input }) => db.createEmbudo(input)),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        nombre: z.string().min(1).optional(),
+        slug: z.string().min(1).optional(),
+        productoId: z.number().optional(),
+        tipo: z.enum(["registro", "whatsapp", "venta"]).optional(),
+        tituloHero: z.string().min(1).optional(),
+        subtituloHero: z.string().optional(),
+        imagenHeroUrl: z.string().optional(),
+        ctaTexto: z.string().optional(),
+        colorTema: z.string().optional(),
+        activo: z.boolean().optional(),
+      }))
+      .mutation(({ input }) => { const { id, ...data } = input; return db.updateEmbudo(id, data); }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ input }) => db.deleteEmbudo(input.id)),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

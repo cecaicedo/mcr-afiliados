@@ -36,6 +36,7 @@ const navGroups = [
     items: [
       { href: "/productos", icon: Package, label: "Catálogo & Nichos" },
       { href: "/campanas", icon: Megaphone, label: "Campañas & UTMs" },
+      { href: "/embudos", icon: Layers, label: "Embudos & Landing" },
       { href: "/leads", icon: Users, label: "Leads & Embudo" },
     ],
   },
