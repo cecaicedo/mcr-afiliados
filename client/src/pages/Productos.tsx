@@ -102,19 +102,24 @@ function ProductoForm({ open, onClose, initial }: { open: boolean; onClose: () =
               <Input type="url" value={form.enlaceAfiliado} onChange={(event) => setForm((current) => ({ ...current, enlaceAfiliado: event.target.value }))} required placeholder="https://go.hotmart.com/..." />
             </div>
             <div className="space-y-1.5">
-              <Label>Portada del ebook (URL o archivo)</Label>
+              <Label>Portada del ebook (Sube una imagen o ingresa URL opcional)</Label>
               <div className="flex gap-2">
-                <Input type="url" value={form.imagenUrl} onChange={(event) => setForm((current) => ({ ...current, imagenUrl: event.target.value }))} placeholder="https://... o sube abajo" />
-                <label className="cursor-pointer inline-flex items-center justify-center rounded-md bg-secondary px-3 text-xs font-medium text-secondary-foreground hover:bg-secondary/80 shrink-0">
-                  {uploading ? "Subiendo..." : "Subir archivo"}
+                <Input type="url" value={form.imagenUrl} onChange={(event) => setForm((current) => ({ ...current, imagenUrl: event.target.value }))} placeholder="Opcional: URL pública de imagen" />
+                <label className={`cursor-pointer inline-flex items-center justify-center rounded-md px-3 text-xs font-medium shrink-0 ${uploading ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}>
+                  {uploading ? "Subiendo..." : "📁 Elegir del PC"}
                   <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} disabled={uploading} />
                 </label>
               </div>
-              {form.imagenUrl && (
-                <div className="mt-1 flex items-center gap-2">
-                  <img src={form.imagenUrl} alt="Vista previa" className="h-10 w-10 rounded object-cover border" />
-                  <span className="text-[11px] text-muted-foreground truncate max-w-[240px]">{form.imagenUrl}</span>
+              {form.imagenUrl ? (
+                <div className="mt-1.5 flex items-center gap-2.5 rounded-lg border border-border bg-muted/30 p-2">
+                  <img src={form.imagenUrl} alt="Vista previa" className="h-12 w-12 rounded object-cover border" />
+                  <div className="overflow-hidden">
+                    <p className="text-xs font-medium text-foreground">Imagen cargada correctamente</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{form.imagenUrl}</p>
+                  </div>
                 </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">Puedes hacer clic en "📁 Elegir del PC" para subir la portada de tu curso o ebook directamente.</p>
               )}
             </div>
           </div>
